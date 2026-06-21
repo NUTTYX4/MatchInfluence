@@ -1,0 +1,12 @@
+# Environments
+venv/
+__pycache__/
+
+# Security & Keys
+.env
+
+# Vector Database (Too large for GitHub)
+chroma_data/
+
+# IDE specific settings
+.vscode/
