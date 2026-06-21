@@ -5,7 +5,7 @@ This repository houses the initial RAG (Retrieval-Augmented Generation) backend 
 ## 🚀 Architectural Overview
 The engine leverages the `all-MiniLM-L6-v2` embedding model to perform high-dimensional vector similarity searches, allowing the system to rank influencers based on semantic relevance (intent/context) rather than basic keyword matching.
 
-
+> **Architecture Diagram:** [Image placeholder: Vector database RAG workflow]
 
 ## 🛠️ Environment Configuration & Governance
 To ensure environment parity across all development machines, the following configurations were implemented to resolve common Windows-based infrastructure hurdles:
@@ -24,14 +24,4 @@ Default Windows `MAX_PATH` limitations (260 characters) are incompatible with th
 * Established FastAPI scaffold with asynchronous endpoints.
 * Integrated ChromaDB with persistent local storage.
 * Engineered a local seeding pipeline for synthetic dataset ingestion.
-* Validated semantic matching logic via cosine similarity metrics.# Remove the old file from Git (if you already added it as README.md)
-git rm --cached README.md
-
-# Add the correctly named file
-git add README_ver1.md
-
-# Commit the change
-git commit -m "docs: finalize v1.0 documentation as README_ver1.md"
-
-# Push the final version
-git push
+* Validated semantic matching logic via cosine similarity metrics.
