@@ -1,3 +1,4 @@
+import asyncio
 from sentence_transformers import SentenceTransformer
 
 # Load the model into memory. 
@@ -9,11 +10,16 @@ print("AI Model Loaded Successfully!")
 
 class AIEngine:
     @staticmethod
-    def get_embedding(text: str) -> list[float]:
+    def _get_embedding_sync(text: str) -> list[float]:
+        """Synchronous internal method for HuggingFace model encoding."""
+        return model.encode(text).tolist()
+
+    @staticmethod
+    async def get_embedding(text: str) -> list[float]:
         """
         Reads English text and converts its semantic meaning 
         into a 384-dimensional mathematical coordinate.
+        Runs in a background thread to prevent blocking the FastAPI event loop.
         """
-        # Encode the text and convert the numpy array to a standard Python list
-        vector = model.encode(text).tolist()
-        return vector
+        # Offload the heavy CPU-bound task to a separate thread
+        return await asyncio.to_thread(AIEngine._get_embedding_sync, text)
