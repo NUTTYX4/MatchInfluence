@@ -1,13 +1,17 @@
 import uuid
 import logging
-from app.services.llm import generate_explanation
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+# Import models and infrastructure
 from app.models.influencer import Influencer
 from app.models.campaign import Campaign, MatchResult
 from app.database import chroma_collection
+
+# Import logic services
 from app.services.scoring import ScoringEngine
-from app.services.ai import AIEngine  # <--- NEW AI IMPORT
+from app.services.ai import AIEngine
+from app.services.llm import generate_explanation  # <--- PHASE 3: LIVE LLM IMPORT
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +57,7 @@ class MatchingOrchestrator:
             
             final_candidates = []
             
-            # 6. SCORE: Run math pipeline
+            # 6. SCORE & EXPLAIN: Run math pipeline and OpenRouter LLM
             for i, inf_id in enumerate(matched_uuids):
                 inf = influencers_dict.get(inf_id)
                 if not inf:
@@ -74,8 +78,17 @@ class MatchingOrchestrator:
                 expected_engagements = max(inf.follower_count * (metrics['er'] / 100), 1)
                 cpe = (inf.price_per_post / expected_engagements) if inf.price_per_post else 0.0
                 
-                # Temporary AI Explanation string (Will be powered by LLM in Phase 3)
-                temp_explanation = f"Matches campaign with a {round(semantic_score * 100)}% semantic confidence."
+                # --- PHASE 3: LIVE OPENROUTER EXPLANATION ---
+                explanation = await generate_explanation(
+                    campaign_context=brief_text,
+                    influencer_data={
+                        "username": inf.username,
+                        "platform": inf.platform,
+                        "bio": inf.bio,
+                        "niche_tags": inf.niche_tags
+                    },
+                    fit_score=fit_score
+                )
 
                 final_candidates.append({
                     "influencer_id": inf_id,  
@@ -94,7 +107,7 @@ class MatchingOrchestrator:
                     "financials": {
                         "cpe": round(cpe, 4)
                     },
-                    "explanation": temp_explanation
+                    "explanation": explanation  # <--- Injected straight from the LLM
                 })
                 
             # 7. RANK: Sort by highest Composite Fit Score
@@ -114,6 +127,7 @@ class MatchingOrchestrator:
                 )
                 db.add(db_match)
                 
+                # Remove the ID from the payload sent to the client
                 del candidate["influencer_id"]
 
             # 9. COMMIT: Execute all database writes atomically

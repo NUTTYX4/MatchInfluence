@@ -1,0 +1,926 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: chroma_data/**, data/**, venv/**, alembic/versions/**
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.env.example
+.gitignore
+alembic.ini
+alembic/env.py
+alembic/README
+alembic/script.py.mako
+app/config.py
+app/database.py
+app/main.py
+app/models/__init__.py
+app/models/campaign.py
+app/models/influencer.py
+app/schemas/__init__.py
+app/schemas/campaign.py
+app/services/__init__.py
+app/services/ai.py
+app/services/data_service.py
+app/services/matching.py
+app/services/scoring.py
+README_ver2.md
+requirements.txt
+seed_db.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".env.example">
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/dbname
+CHROMA_DB_PATH=./chroma_data
+
+OPENAI_API_KEY=
+YOUTUBE_API_KEY=
+RAPIDAPI_KEY=
+</file>
+
+<file path=".gitignore">
+# Environments
+venv/
+__pycache__/
+
+# Security & Keys
+.env
+
+# Vector Database (Too large for GitHub)
+chroma_data/
+
+# IDE specific settings
+.vscode/
+</file>
+
+<file path="alembic.ini">
+# A generic, single database configuration.
+
+[alembic]
+# path to migration scripts
+script_location = alembic
+
+# template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+# Uncomment the line below if you want the files to be prepended with date and time
+# file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+
+# sys.path path, will be prepended to sys.path if present.
+# defaults to the current working directory.
+prepend_sys_path = .
+
+# timezone to use when rendering the date within the migration file
+# as well as the filename.
+# If specified, requires the python>=3.9 or backports.zoneinfo library.
+# Any required deps can installed by adding `alembic[tz]` to the pip requirements
+# string value is passed to ZoneInfo()
+# leave blank for localtime
+# timezone =
+
+# max length of characters to apply to the
+# "slug" field
+# truncate_slug_length = 40
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+# set to 'true' to allow .pyc and .pyo files without
+# a source .py file to be detected as revisions in the
+# versions/ directory
+# sourceless = false
+
+# version location specification; This defaults
+# to alembic/versions.  When using multiple version
+# directories, initial revisions must be specified with --version-path.
+# The path separator used here should be the separator specified by "version_path_separator" below.
+# version_locations = %(here)s/bar:%(here)s/bat:alembic/versions
+
+# version path separator; As mentioned above, this is the character used to split
+# version_locations. The default within new alembic.ini files is "os", which uses os.pathsep.
+# If this key is omitted entirely, it falls back to the legacy behavior of splitting on spaces and/or commas.
+# Valid values for version_path_separator are:
+#
+# version_path_separator = :
+# version_path_separator = ;
+# version_path_separator = space
+version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
+
+# set to 'true' to search source files recursively
+# in each "version_locations" directory
+# new in Alembic version 1.10
+# recursive_version_locations = false
+
+# the output encoding used when revision files
+# are written from script.py.mako
+# output_encoding = utf-8
+
+sqlalchemy.url = driver://user:pass@localhost/dbname
+
+
+[post_write_hooks]
+# post_write_hooks defines scripts or Python functions that are run
+# on newly generated revision scripts.  See the documentation for further
+# detail and examples
+
+# format using "black" - use the console_scripts runner, against the "black" entrypoint
+# hooks = black
+# black.type = console_scripts
+# black.entrypoint = black
+# black.options = -l 79 REVISION_SCRIPT_FILENAME
+
+# lint with attempts to fix using "ruff" - use the exec runner, execute a binary
+# hooks = ruff
+# ruff.type = exec
+# ruff.executable = %(here)s/.venv/bin/ruff
+# ruff.options = --fix REVISION_SCRIPT_FILENAME
+
+# Logging configuration
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S
+</file>
+
+<file path="alembic/env.py">
+import asyncio
+from logging.config import fileConfig
+
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
+
+from app.config import settings
+from app.models.influencer import Base
+import app.models.campaign  # We must import this so Alembic sees the Campaign tables too
+
+config = context.config
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+target_metadata = Base.metadata
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def do_run_migrations(connection: Connection) -> None:
+    context.configure(connection=connection, target_metadata=target_metadata)
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_async_migrations() -> None:
+    """In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+
+    asyncio.run(run_async_migrations())
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+</file>
+
+<file path="alembic/README">
+Generic single-database configuration with an async dbapi.
+</file>
+
+<file path="alembic/script.py.mako">
+"""${message}
+
+Revision ID: ${up_revision}
+Revises: ${down_revision | comma,n}
+Create Date: ${create_date}
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+${imports if imports else ""}
+
+# revision identifiers, used by Alembic.
+revision: str = ${repr(up_revision)}
+down_revision: Union[str, None] = ${repr(down_revision)}
+branch_labels: Union[str, Sequence[str], None] = ${repr(branch_labels)}
+depends_on: Union[str, Sequence[str], None] = ${repr(depends_on)}
+
+
+def upgrade() -> None:
+    ${upgrades if upgrades else "pass"}
+
+
+def downgrade() -> None:
+    ${downgrades if downgrades else "pass"}
+</file>
+
+<file path="app/config.py">
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    # Database Configuration
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/matchinfluence"
+    CHROMA_DB_PATH: str = "./chroma_data"
+    
+    # API Keys (To be used in later phases)
+    OPENAI_API_KEY: str = ""
+    YOUTUBE_API_KEY: str = ""
+    RAPIDAPI_KEY: str = ""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+# Instantiate settings to be imported across the app
+settings = Settings()
+</file>
+
+<file path="app/models/__init__.py">
+
+</file>
+
+<file path="app/models/campaign.py">
+import uuid
+from datetime import datetime, timezone
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, Text, DateTime
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from app.models.influencer import Base
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+class Campaign(Base):
+    __tablename__ = "campaigns"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    niche = Column(String(200), nullable=False)
+    audience = Column(String(500), nullable=False)
+    budget = Column(Float, nullable=False)
+    target_reach = Column(Integer, nullable=False)
+    
+    # AI Tracking: Saves the exact text embedded by the HuggingFace model
+    brief_text = Column(Text, nullable=True) 
+    
+    created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+    # --- Relationships ---
+    results = relationship("MatchResult", back_populates="campaign", cascade="all, delete-orphan")
+
+
+class MatchResult(Base):
+    __tablename__ = "match_results"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    campaign_id = Column(UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False)
+    influencer_id = Column(UUID(as_uuid=True), ForeignKey("influencers.id", ondelete="CASCADE"), nullable=False)
+    rank = Column(Integer, nullable=False)
+
+    # --- AI Score Breakdown ---
+    semantic_score = Column(Float, nullable=True)
+    authenticity_score = Column(Float, nullable=True)
+    composite_score = Column(Float, nullable=False) # The final fit score
+    cpe = Column(Float, nullable=True)
+    
+    # AI Tracking: Saves the natural language reasoning for why this influencer matched
+    explanation = Column(Text, nullable=True) 
+    
+    created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+    # --- Relationships ---
+    campaign = relationship("Campaign", back_populates="results")
+    influencer = relationship("Influencer", back_populates="match_results")
+</file>
+
+<file path="app/models/influencer.py">
+import uuid
+from datetime import datetime, timezone
+from sqlalchemy import Column, String, Float, Integer, BigInteger, Text, JSON, DateTime
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base
+Base = declarative_base()
+
+def _utcnow() -> datetime:
+    """Timezone-aware UTC timestamp factory."""
+    return datetime.now(timezone.utc)
+
+class Influencer(Base):
+    __tablename__ = "influencers"
+
+    # --- Identity ---
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = Column(String(100), unique=True, index=True, nullable=False)
+    full_name = Column(String(200), nullable=True)
+    platform = Column(String(20), nullable=False)
+    profile_url = Column(String(500), nullable=True)
+
+    # --- Metrics ---
+    follower_count = Column(Integer, default=0, nullable=False)
+    following_count = Column(Integer, default=0, nullable=False)
+    total_likes = Column(BigInteger, default=0, nullable=False)
+    total_comments = Column(BigInteger, default=0, nullable=False)
+    avg_views = Column(Integer, nullable=True)
+    post_count = Column(Integer, default=0, nullable=False)
+
+    # --- Financial ---
+    estimated_cpe = Column(Float, nullable=True)
+    price_per_post = Column(Float, nullable=True)
+
+    # --- AI Context (The Brain) ---
+    bio = Column(Text, nullable=True)
+    recent_posts = Column(Text, nullable=True)
+    niche_tags = Column(JSON, nullable=True, default=list) # Native JSON, safe for PostgreSQL
+    engagement_rate = Column(Float, nullable=True)
+
+    # --- Metadata ---
+    source = Column(String(50), nullable=True)
+    scraped_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    # --- Relationships ---
+    match_results = relationship("MatchResult", back_populates="influencer", cascade="all, delete-orphan")
+</file>
+
+<file path="app/schemas/__init__.py">
+
+</file>
+
+<file path="app/schemas/campaign.py">
+from pydantic import BaseModel, Field
+
+class CampaignRequest(BaseModel):
+    niche: str = Field(..., description="e.g., productivity tech, space research")
+    audience: str = Field(..., description="e.g., corporate professionals 25-40")
+    budget: float = Field(..., description="Maximum budget allocation")
+    target_reach: int = Field(..., description="Target audience reach constraint")
+    num_results: int = Field(default=5)
+
+    @property
+    def brief_text(self) -> str:
+        """Concatenates fields to create a rich context block for vector embedding."""
+        return f"Niche: {self.niche}. Audience: {self.audience}."
+</file>
+
+<file path="app/services/__init__.py">
+
+</file>
+
+<file path="app/services/ai.py">
+from sentence_transformers import SentenceTransformer
+
+# Load the model into memory. 
+# 'all-MiniLM-L6-v2' is fast, free, and produces 384-dimensional vectors 
+# which perfectly matches ChromaDB's default space.
+print("Loading HuggingFace AI Model... (This may take a few seconds on the first run)")
+model = SentenceTransformer('all-MiniLM-L6-v2')
+print("AI Model Loaded Successfully!")
+
+class AIEngine:
+    @staticmethod
+    def get_embedding(text: str) -> list[float]:
+        """
+        Reads English text and converts its semantic meaning 
+        into a 384-dimensional mathematical coordinate.
+        """
+        # Encode the text and convert the numpy array to a standard Python list
+        vector = model.encode(text).tolist()
+        return vector
+</file>
+
+<file path="app/services/data_service.py">
+import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from app.models.influencer import Influencer
+from app.database import chroma_collection
+
+class DataIngestionService:
+    @staticmethod
+    async def save_influencer(db: AsyncSession, influencer_data: dict, embedding: list[float]) -> Influencer:
+        """
+        Atomically saves structural data to PostgreSQL and semantic vectors to ChromaDB.
+        """
+        # 1. Check if the influencer already exists to avoid duplicate entries
+        query = select(Influencer).where(Influencer.username == influencer_data["username"])
+        result = await db.execute(query)
+        existing_influencer = result.scalar_one_or_none()
+        
+        if existing_influencer:
+            return existing_influencer
+
+        # 2. Generate a single unified UUID shared across both databases
+        shared_uuid = str(uuid.uuid4())
+        
+        # 3. Formulate the PostgreSQL structured record
+        db_influencer = Influencer(
+            id=shared_uuid,
+            username=influencer_data["username"],
+            full_name=influencer_data.get("full_name"),
+            platform=influencer_data["platform"],
+            profile_url=influencer_data.get("profile_url"),
+            follower_count=influencer_data.get("follower_count", 0),
+            following_count=influencer_data.get("following_count", 0),
+            total_likes=influencer_data.get("total_likes", 0),
+            total_comments=influencer_data.get("total_comments", 0),
+            avg_views=influencer_data.get("avg_views"),
+            post_count=influencer_data.get("post_count", 0),
+            price_per_post=influencer_data.get("price_per_post"),
+            bio=influencer_data.get("bio"),
+            recent_posts=influencer_data.get("recent_posts"),
+            niche_tags=influencer_data.get("niche_tags", []),
+            source=influencer_data["source"]
+        )
+        
+        # Calculate initial baseline engagement rate
+        if db_influencer.follower_count > 0:
+            total_engagements = db_influencer.total_likes + db_influencer.total_comments
+            db_influencer.engagement_rate = float(total_engagements / db_influencer.follower_count)
+
+        # 4. Write to PostgreSQL
+        db.add(db_influencer)
+        await db.commit()
+        await db.refresh(db_influencer)
+        
+        # 5. Compile semantic metadata block for ChromaDB search display
+        semantic_document = f"Bio: {db_influencer.bio or ''} Recent Posts: {db_influencer.recent_posts or ''}"
+        
+        # 6. Write to ChromaDB using the exact same ID string
+        chroma_collection.add(
+            ids=[shared_uuid],
+            embeddings=[embedding],
+            documents=[semantic_document],
+            metadatas=[{
+                "username": db_influencer.username,
+                "platform": db_influencer.platform,
+                "niche_tags": ",".join(db_influencer.niche_tags) if db_influencer.niche_tags else ""
+            }]
+        )
+        
+        return db_influencer
+</file>
+
+<file path="app/services/matching.py">
+import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from app.models.influencer import Influencer
+from app.models.campaign import Campaign, MatchResult
+from app.database import chroma_collection
+from app.services.scoring import ScoringEngine
+from app.services.ai import AIEngine  # <--- NEW AI IMPORT
+
+class MatchingOrchestrator:
+    
+    @staticmethod
+    async def find_best_matches(db: AsyncSession, campaign_req):
+        # 1. Compile the semantic text
+        brief_text = f"Niche: {campaign_req.niche}. Audience: {campaign_req.audience}."
+
+        # 2. PERSIST: Save the initial Campaign Request
+        db_campaign = Campaign(
+            niche=campaign_req.niche,
+            audience=campaign_req.audience,
+            budget=campaign_req.budget,
+            target_reach=campaign_req.target_reach,
+            brief_text=brief_text  # Saving the exact text the AI reads
+        )
+        db.add(db_campaign)
+        await db.flush() 
+        
+        # 3. AI VECTOR EMBEDDING (Replacing the dummy math!)
+        query_vector = AIEngine.get_embedding(brief_text)
+        
+        # 4. Vector Search via ChromaDB
+        chroma_results = chroma_collection.query(
+            query_embeddings=[query_vector],
+            n_results=campaign_req.num_results
+        )
+        
+        if not chroma_results['ids'] or not chroma_results['ids'][0]:
+            await db.commit() 
+            return []
+
+        matched_uuids = chroma_results['ids'][0]
+        semantic_distances = chroma_results['distances'][0]
+        
+        # 5. HYDRATE: Fetch exact rows from PostgreSQL
+        query = select(Influencer).where(Influencer.id.in_(matched_uuids))
+        db_results = await db.execute(query)
+        influencers_dict = {str(inf.id): inf for inf in db_results.scalars().all()}
+        
+        final_candidates = []
+        
+        # 6. SCORE: Run math pipeline
+        for i, inf_id in enumerate(matched_uuids):
+            inf = influencers_dict.get(inf_id)
+            if not inf:
+                continue
+                
+            distance = semantic_distances[i]
+            semantic_score = max(0.0, 1.0 - (distance / 2.0))
+            
+            metrics = ScoringEngine.calculate_metrics(
+                inf.follower_count, inf.following_count, inf.total_likes, inf.total_comments
+            )
+            
+            auth_score = ScoringEngine.calculate_authenticity(
+                metrics['er'], metrics['clr'], metrics['ffr'], inf.platform
+            )
+            fit_score = ScoringEngine.calculate_composite_fit(semantic_score, auth_score)
+            
+            expected_engagements = max(inf.follower_count * (metrics['er'] / 100), 1)
+            cpe = (inf.price_per_post / expected_engagements) if inf.price_per_post else 0.0
+            
+            # Temporary AI Explanation string (Will be powered by LLM in Phase 3)
+            temp_explanation = f"Matches campaign with a {round(semantic_score * 100)}% semantic confidence."
+
+            final_candidates.append({
+                "influencer_id": inf_id,  
+                "influencer": {
+                    "username": inf.username,
+                    "platform": inf.platform,
+                    "followers": inf.follower_count,
+                    "price": inf.price_per_post
+                },
+                "metrics": metrics,
+                "scores": {
+                    "semantic_match": round(semantic_score, 3),
+                    "authenticity": auth_score,
+                    "composite_fit": fit_score
+                },
+                "financials": {
+                    "cpe": round(cpe, 4)
+                },
+                "explanation": temp_explanation
+            })
+            
+        # 7. RANK: Sort by highest Composite Fit Score
+        final_candidates.sort(key=lambda x: x["scores"]["composite_fit"], reverse=True)
+        
+        # 8. PERSIST: Save the MatchResult records to PostgreSQL
+        for rank_index, candidate in enumerate(final_candidates):
+            db_match = MatchResult(
+                campaign_id=db_campaign.id,
+                influencer_id=candidate["influencer_id"],
+                semantic_score=candidate["scores"]["semantic_match"],
+                authenticity_score=candidate["scores"]["authenticity"],
+                composite_score=candidate["scores"]["composite_fit"],
+                cpe=candidate["financials"]["cpe"],
+                explanation=candidate["explanation"],
+                rank=rank_index + 1
+            )
+            db.add(db_match)
+            
+            del candidate["influencer_id"]
+
+        # 9. COMMIT: Execute all database writes atomically
+        await db.commit()
+        
+        return final_candidates
+</file>
+
+<file path="app/services/scoring.py">
+import math
+
+class ScoringEngine:
+    
+    @staticmethod
+    def calculate_metrics(followers: int, following: int, likes: int, comments: int) -> dict:
+        """Calculates raw ER, CLR, and FFR metrics safely handling zero-division."""
+        followers = max(followers, 1) # Prevent DivisionByZero
+        likes = max(likes, 0)
+        comments = max(comments, 0)
+        following = max(following, 1)
+
+        er = ((likes + comments) / followers) * 100
+        clr = (comments / likes) if likes > 0 else 0.0
+        ffr = followers / following
+
+        return {
+            "er": round(er, 2),
+            "clr": round(clr, 4),
+            "ffr": round(ffr, 2)
+        }
+
+    @staticmethod
+    def calculate_authenticity(er: float, clr: float, ffr: float, platform: str) -> float:
+        """
+        Calculates the Authenticity Score using sigmoid normalization.
+        Weights: ER (50%), CLR (30%), FFR (20%)
+        """
+        # 1. Normalize ER based on platform benchmarks (Instagram ~3%, YouTube ~4%)
+        er_benchmark = 3.5 if platform == "youtube" else 3.0
+        norm_er = 1 / (1 + math.exp(-1.5 * (er - er_benchmark)))
+
+        # 2. Normalize CLR (Healthy organic CLR is usually between 0.02 and 0.08)
+        # We heavily penalize CLR < 0.01 (bot territory)
+        if clr < 0.01:
+            norm_clr = 0.1  # Severe penalty
+        elif clr > 0.15:
+            norm_clr = 0.8  # Good, but diminishing returns for extreme outlier comments
+        else:
+            # Scale linearly between 0.01 and 0.15
+            norm_clr = (clr - 0.01) / 0.14 
+
+        # 3. Normalize FFR (Authority metric)
+        # FFR < 1 means they follow more people than follow them (Spam behavior)
+        if ffr < 1.0:
+            norm_ffr = 0.0
+        elif ffr > 50.0:
+            norm_ffr = 1.0 # Max authority
+        else:
+            norm_ffr = math.log10(ffr) / math.log10(50.0)
+
+        # 4. Apply Weights
+        w_er, w_clr, w_ffr = 0.50, 0.30, 0.20
+        authenticity_score = (w_er * norm_er) + (w_clr * norm_clr) + (w_ffr * norm_ffr)
+
+        return round(authenticity_score, 3)
+
+    @staticmethod
+    def calculate_composite_fit(semantic_score: float, authenticity_score: float) -> float:
+        """
+        Combines vector semantic similarity with the mathematical authenticity score.
+        Fit = (0.6 * Semantic) + (0.4 * Authenticity)
+        """
+        alpha, beta = 0.6, 0.4
+        fit_score = (alpha * semantic_score) + (beta * authenticity_score)
+        return round(fit_score, 3)
+</file>
+
+<file path="README_ver2.md">
+# MatchInfluence Core API (v2.0.0)
+
+## Overview
+MatchInfluence is a production-grade, AI-powered influencer matching engine. It takes natural language campaign briefs (niche, audience, budget) and mathematically ranks the best influencer fits using vector similarity and algorithmic scoring.
+
+## Architecture: The Dual-Engine
+This system utilizes a highly decoupled, dual-database architecture:
+
+1. **The Vector Store (ChromaDB):** Handles the semantic search. It stores the mathematical representations of influencer profiles (bio, niche, content).
+2. **The Relational Store (PostgreSQL):** The absolute source of truth. Handles structured data (metrics, financial logic, campaign audit trails, and computed scores).
+
+## The AI Brain
+* **Model:** Local HuggingFace `all-MiniLM-L6-v2` via `sentence-transformers`.
+* **Process:** Converts campaign briefs into 384-dimensional arrays for millisecond semantic retrieval against the ChromaDB space.
+
+## Current State (Phase 1 & 2 Complete)
+* ✅ **PostgreSQL Foundation:** Advanced ORM models with UUID primary keys and complex metrics tracking.
+* ✅ **Vector Search:** Fully operational semantic matching.
+* ✅ **Math Pipeline:** Custom algorithms calculating expected Cost Per Engagement (CPE), Authenticity (ER, CLR, FFR), and Composite Fit.
+* ✅ **Stable 200 OK:** The `/match` endpoint successfully orchestrates the dual-database read/writes and returns ranked JSON results.
+
+## Next Up
+* LLM Generative Explanations (OpenRouter Integration)
+* Live Data Ingestion Pipelines (YouTube/Instagram APIs)
+* JWT Security Layer
+</file>
+
+<file path="requirements.txt">
+fastapi==0.110.0
+uvicorn==0.30.1
+chromadb==0.4.24
+openai==1.14.0
+pydantic==2.6.4
+python-dotenv==1.0.1
+numpy==1.26.4
+</file>
+
+<file path="seed_db.py">
+import asyncio
+import json
+from app.database import AsyncSessionLocal
+from app.services.data_service import DataIngestionService
+
+async def seed_database():
+    print("Loading synthetic profiles...")
+    with open("data/mock_influencers_v2.json", "r") as f:
+        profiles = json.load(f)
+
+    async with AsyncSessionLocal() as db:
+        for profile in profiles:
+            # Since we haven't wired up OpenAI yet, we inject a dummy 384-dimensional 
+            # vector to satisfy ChromaDB's local 'all-MiniLM-L6-v2' space requirement.
+            dummy_vector = [0.01] * 384 
+            
+            await DataIngestionService.save_influencer(
+                db=db,
+                influencer_data=profile,
+                embedding=dummy_vector
+            )
+            print(f"✅ Successfully ingested: {profile['username']}")
+            
+    print("\nDatabase seeding complete! PostgreSQL and ChromaDB are synchronized.")
+
+if __name__ == "__main__":
+    asyncio.run(seed_database())
+</file>
+
+<file path="app/database.py">
+import chromadb
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from app.config import settings
+
+# ==========================================
+# 1. PostgreSQL Asynchronous Configuration
+# ==========================================
+
+# create_async_engine manages our asynchronous connection pool to Postgres
+engine = create_async_engine(
+    settings.DATABASE_URL, 
+    echo=True,  # Set to True to see raw SQL logs in your terminal (great for debugging)
+)
+
+# async_sessionmaker acts as a factory for creating unique database sessions
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    expire_on_commit=False,
+    class_=AsyncSession
+)
+
+# FastAPI Dependency to yield a unique database session per API request
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+
+
+# ==========================================
+# 2. ChromaDB Configuration (v1 Baseline)
+# ==========================================
+
+# Retaining your local vector persistence setup using centralized settings
+chroma_client = chromadb.PersistentClient(path=settings.CHROMA_DB_PATH)
+
+# Fetching or initializing the collection with cosine distance metrics
+chroma_collection = chroma_client.get_or_create_collection(
+    name="influencer_embeddings",
+    metadata={"hnsw:space": "cosine"}
+)
+</file>
+
+<file path="app/main.py">
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# Import our infrastructure and logic
+from app.database import get_db
+from app.schemas.campaign import CampaignRequest
+from app.services.matching import MatchingOrchestrator
+
+# Initialize the API
+app = FastAPI(
+    title="MatchInfluence API", 
+    description="Enterprise Influencer Matching & Scoring Engine",
+    version="2.0"
+)
+
+@app.get("/")
+async def health_check():
+    """Confirms the API is online."""
+    return {"status": "online", "message": "MatchInfluence Engine V2 is running."}
+
+@app.post("/match")
+async def match_influencers(campaign: CampaignRequest, db: AsyncSession = Depends(get_db)):
+    """
+    The core matching endpoint. Takes a campaign brief, queries ChromaDB for 
+    semantic matches, and scores them using PostgreSQL metrics.
+    """
+    try:
+        results = await MatchingOrchestrator.find_best_matches(db, campaign)
+        
+        return {
+            "campaign_context": campaign.brief_text,
+            "budget_constraint": f"${campaign.budget}",
+            "matches_found": len(results),
+            "results": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+</file>
+
+</files>
