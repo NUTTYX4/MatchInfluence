@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Integer, BigInteger, Text, JSON, DateTime
+from sqlalchemy import Column, String, Float, Integer, BigInteger, Text, JSON, DateTime, ARRAY
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import declarative_base
@@ -35,7 +35,8 @@ class Influencer(Base):
     # --- AI Context (The Brain) ---
     bio = Column(Text, nullable=True)
     recent_posts = Column(Text, nullable=True)
-    niche_tags = Column(JSON, nullable=True, default=list) # Native JSON, safe for PostgreSQL
+   # Change it to exactly this:
+    niche_tags = Column(ARRAY(String), default=list)
     engagement_rate = Column(Float, nullable=True)
 
     # --- Metadata ---

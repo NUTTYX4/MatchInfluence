@@ -1,12 +1,14 @@
 # Environments
 venv/
+env/
 __pycache__/
 
-# Security & Keys
+# Environment Variables
 .env
 
-# Vector Database (Too large for GitHub)
+# Local Databases
 chroma_data/
+*.sqlite3
 
-# IDE specific settings
-.vscode/
+# OS Files
+.DS_Store

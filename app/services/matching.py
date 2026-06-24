@@ -1,5 +1,6 @@
 import uuid
 import logging
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -11,53 +12,52 @@ from app.database import chroma_collection
 # Import logic services
 from app.services.scoring import ScoringEngine
 from app.services.ai import AIEngine
-from app.services.llm import generate_explanation  # <--- PHASE 3: LIVE LLM IMPORT
+from app.services.llm import generate_explanation
 
 logger = logging.getLogger(__name__)
 
 class MatchingOrchestrator:
     
     @staticmethod
-    async def find_best_matches(db: AsyncSession, campaign_req):
+    async def find_best_matches(db: AsyncSession, request):
         try:
-            # 1. Compile the semantic text
-            brief_text = f"Niche: {campaign_req.niche}. Audience: {campaign_req.audience}."
+            # 1. FETCH EXACT CAMPAIGN
+            query = select(Campaign).where(Campaign.id == request.campaign_id)
+            result = await db.execute(query)
+            db_campaign = result.scalar_one_or_none()
 
-            # 2. PERSIST: Save the initial Campaign Request
-            db_campaign = Campaign(
-                niche=campaign_req.niche,
-                audience=campaign_req.audience,
-                budget=campaign_req.budget,
-                target_reach=campaign_req.target_reach,
-                brief_text=brief_text  # Saving the exact text the AI reads
-            )
-            db.add(db_campaign)
-            await db.flush() 
-            
-            # 3. AI VECTOR EMBEDDING (Now properly awaited and offloaded to a thread)
+            if not db_campaign:
+                raise ValueError(f"Campaign {request.campaign_id} not found in database.")
+
+            brief_text = db_campaign.brief_text 
+
+            # 3. AI VECTOR EMBEDDING
             query_vector = await AIEngine.get_embedding(brief_text)
             
             # 4. Vector Search via ChromaDB
             chroma_results = chroma_collection.query(
                 query_embeddings=[query_vector],
-                n_results=campaign_req.num_results
+                n_results=request.num_results
             )
             
             if not chroma_results['ids'] or not chroma_results['ids'][0]:
-                await db.commit() 
                 return []
 
             matched_uuids = chroma_results['ids'][0]
             semantic_distances = chroma_results['distances'][0]
             
+            # FIX: Cast ChromaDB strings to Python UUID objects for asyncpg
+            uuid_list = [uuid.UUID(uid) for uid in matched_uuids]
+            
             # 5. HYDRATE: Fetch exact rows from PostgreSQL
-            query = select(Influencer).where(Influencer.id.in_(matched_uuids))
+            query = select(Influencer).where(Influencer.id.in_(uuid_list))
             db_results = await db.execute(query)
             influencers_dict = {str(inf.id): inf for inf in db_results.scalars().all()}
             
-            final_candidates = []
+            candidate_prep = []
+            llm_tasks = []
             
-            # 6. SCORE & EXPLAIN: Run math pipeline and OpenRouter LLM
+            # 6. SCORE PREPARATION (No blocking awaits here)
             for i, inf_id in enumerate(matched_uuids):
                 inf = influencers_dict.get(inf_id)
                 if not inf:
@@ -78,46 +78,63 @@ class MatchingOrchestrator:
                 expected_engagements = max(inf.follower_count * (metrics['er'] / 100), 1)
                 cpe = (inf.price_per_post / expected_engagements) if inf.price_per_post else 0.0
                 
-                # --- PHASE 3: LIVE OPENROUTER EXPLANATION ---
-                explanation = await generate_explanation(
-                    campaign_context=brief_text,
-                    influencer_data={
-                        "username": inf.username,
-                        "platform": inf.platform,
-                        "bio": inf.bio,
-                        "niche_tags": inf.niche_tags
-                    },
-                    fit_score=fit_score
-                )
-
-                final_candidates.append({
-                    "influencer_id": inf_id,  
-                    "influencer": {
-                        "username": inf.username,
-                        "platform": inf.platform,
-                        "followers": inf.follower_count,
-                        "price": inf.price_per_post
-                    },
+                # Store the math results
+                candidate_prep.append({
+                    "inf_id": inf_id,
+                    "inf": inf,
                     "metrics": metrics,
                     "scores": {
                         "semantic_match": round(semantic_score, 3),
                         "authenticity": auth_score,
                         "composite_fit": fit_score
                     },
-                    "financials": {
-                        "cpe": round(cpe, 4)
-                    },
-                    "explanation": explanation  # <--- Injected straight from the LLM
+                    "cpe": cpe
                 })
-                
-            # 7. RANK: Sort by highest Composite Fit Score
+
+                # Queue the async task (Do NOT await it here)
+                llm_tasks.append(
+                    generate_explanation(
+                        campaign_context=brief_text,
+                        influencer_data={
+                            "username": inf.username,
+                            "platform": inf.platform,
+                            "bio": inf.bio,
+                            "niche_tags": inf.niche_tags
+                        },
+                        fit_score=fit_score
+                    )
+                )
+            
+            # FIX: Fire all OpenRouter API calls concurrently! (The Anti-Bottleneck)
+            explanations = await asyncio.gather(*llm_tasks)
+
+            final_candidates = []
+            
+            # 7. ASSEMBLE & RANK
+            for idx, candidate in enumerate(candidate_prep):
+                final_candidates.append({
+                    "influencer_id": candidate["inf_id"],
+                    "influencer": {
+                        "username": candidate["inf"].username,
+                        "platform": candidate["inf"].platform,
+                        "followers": candidate["inf"].follower_count,
+                        "price": candidate["inf"].price_per_post
+                    },
+                    "metrics": candidate["metrics"],
+                    "scores": candidate["scores"],
+                    "financials": {
+                        "cpe": round(candidate["cpe"], 4)
+                    },
+                    "explanation": explanations[idx]
+                })
+
             final_candidates.sort(key=lambda x: x["scores"]["composite_fit"], reverse=True)
             
-            # 8. PERSIST: Save the MatchResult records to PostgreSQL
+            # 8. PERSIST
             for rank_index, candidate in enumerate(final_candidates):
                 db_match = MatchResult(
                     campaign_id=db_campaign.id,
-                    influencer_id=candidate["influencer_id"],
+                    influencer_id=uuid.UUID(candidate["influencer_id"]),
                     semantic_score=candidate["scores"]["semantic_match"],
                     authenticity_score=candidate["scores"]["authenticity"],
                     composite_score=candidate["scores"]["composite_fit"],
@@ -127,16 +144,15 @@ class MatchingOrchestrator:
                 )
                 db.add(db_match)
                 
-                # Remove the ID from the payload sent to the client
+                # Remove UUID before sending to frontend
                 del candidate["influencer_id"]
 
-            # 9. COMMIT: Execute all database writes atomically
+            # 9. COMMIT
             await db.commit()
             
             return final_candidates
             
         except Exception as e:
-            # 10. ROLLBACK: Catch any DB or math failures to prevent desynchronization
-            logger.error(f"Matching pipeline encountered an error: {str(e)}. Rolling back transaction.")
+            logger.error(f"Matching pipeline error: {str(e)}")
             await db.rollback()
             raise e

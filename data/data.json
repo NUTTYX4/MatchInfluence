@@ -1,0 +1,945 @@
+{
+    "influencers": [
+        {
+            "username": "user_1_6164",
+            "full_name": null,
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_1",
+            "follower_count": 423910,
+            "following_count": 509,
+            "total_likes": 13319,
+            "total_comments": 871,
+            "post_count": 1097,
+            "price_per_post": 2970.48,
+            "bio": null,
+            "niche_tags": [
+                "Fitness",
+                "B2B SaaS"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_2_1873",
+            "full_name": null,
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_2",
+            "follower_count": 12377344,
+            "following_count": 253,
+            "total_likes": 158104,
+            "total_comments": 17295,
+            "post_count": 240,
+            "price_per_post": 93897.08,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_3_9012",
+            "full_name": "User Name 3",
+            "platform": "youtube",
+            "profile_url": "https://example.com/user_3",
+            "follower_count": 10564,
+            "following_count": 610,
+            "total_likes": 466,
+            "total_comments": 40,
+            "post_count": 398,
+            "price_per_post": 31.25,
+            "bio": "Content creator focusing on Mechanical Keyboards.",
+            "niche_tags": [
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_4_1798",
+            "full_name": "User Name 4",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_4",
+            "follower_count": 6891715,
+            "following_count": 611,
+            "total_likes": 65985,
+            "total_comments": 2505,
+            "post_count": 678,
+            "price_per_post": 25508.72,
+            "bio": null,
+            "niche_tags": [
+                "Finance",
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_5_1936",
+            "full_name": "User Name 5",
+            "platform": "twitter",
+            "profile_url": "",
+            "follower_count": 14392215,
+            "following_count": 306,
+            "total_likes": 169465,
+            "total_comments": 14347,
+            "post_count": 943,
+            "price_per_post": 65854.29,
+            "bio": "",
+            "niche_tags": [
+                "Finance",
+                "Fashion"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_6_3248",
+            "full_name": "User Name 6",
+            "platform": "youtube",
+            "profile_url": "https://example.com/user_6",
+            "follower_count": 43023,
+            "following_count": 555,
+            "total_likes": 3043,
+            "total_comments": 123,
+            "post_count": 213,
+            "price_per_post": 204.2,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Tech",
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_7_9529",
+            "full_name": "User Name 7",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_7",
+            "follower_count": 15327,
+            "following_count": 334,
+            "total_likes": 1037,
+            "total_comments": 74,
+            "post_count": 1002,
+            "price_per_post": 27.23,
+            "bio": "Content creator focusing on Fashion.",
+            "niche_tags": [
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_8_3785",
+            "full_name": "User Name 8",
+            "platform": "tiktok",
+            "profile_url": "",
+            "follower_count": 3035403,
+            "following_count": 904,
+            "total_likes": 37732,
+            "total_comments": 3541,
+            "post_count": 26,
+            "price_per_post": 14318.52,
+            "bio": "Content creator focusing on Finance.",
+            "niche_tags": [
+                "B2B SaaS",
+                "Gaming"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_9_6122",
+            "full_name": "User Name 9",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_9",
+            "follower_count": 4382642,
+            "following_count": 375,
+            "total_likes": 80986,
+            "total_comments": 8181,
+            "post_count": 996,
+            "price_per_post": 19071.7,
+            "bio": "Content creator focusing on B2B SaaS.",
+            "niche_tags": [],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_10_5916",
+            "full_name": "User Name 10",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_10",
+            "follower_count": 4235964,
+            "following_count": 903,
+            "total_likes": 65041,
+            "total_comments": 2035,
+            "post_count": 1677,
+            "price_per_post": 5305.66,
+            "bio": "Content creator focusing on Urban Foraging.",
+            "niche_tags": [
+                "B2B SaaS"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_11_8414",
+            "full_name": "User Name 11",
+            "platform": "youtube",
+            "profile_url": "https://example.com/user_11",
+            "follower_count": 2644,
+            "following_count": 656,
+            "total_likes": 272,
+            "total_comments": 24,
+            "post_count": 1671,
+            "price_per_post": 100000,
+            "bio": "Content creator focusing on Tech.",
+            "niche_tags": [
+                "Gaming",
+                "Fitness"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_12_1831",
+            "full_name": "User Name 12",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_12",
+            "follower_count": 30888,
+            "following_count": 932,
+            "total_likes": 1926,
+            "total_comments": 119,
+            "post_count": 816,
+            "price_per_post": 178.54,
+            "bio": "Content creator focusing on Tech.",
+            "niche_tags": [
+                "Gaming"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_13_5329",
+            "full_name": "User Name 13",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_13",
+            "follower_count": 210799,
+            "following_count": 434,
+            "total_likes": 7458,
+            "total_comments": 624,
+            "post_count": 240,
+            "price_per_post": 683.45,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Tech",
+                "Fitness"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_14_2988",
+            "full_name": "User Name 14",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_14",
+            "follower_count": 6244,
+            "following_count": 742,
+            "total_likes": 450,
+            "total_comments": 22,
+            "post_count": 373,
+            "price_per_post": 24.68,
+            "bio": "Content creator focusing on Fashion.",
+            "niche_tags": [
+                "Gaming",
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_15_9342",
+            "full_name": "User Name 15",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_15",
+            "follower_count": 3383636,
+            "following_count": 865,
+            "total_likes": 47093,
+            "total_comments": 4116,
+            "post_count": 611,
+            "price_per_post": 29081.43,
+            "bio": "Content creator focusing on Urban Foraging.",
+            "niche_tags": [
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_16_3439",
+            "full_name": "User Name 16",
+            "platform": "youtube",
+            "profile_url": "https://example.com/user_16",
+            "follower_count": 42042,
+            "following_count": 926,
+            "total_likes": 3183,
+            "total_comments": 92,
+            "post_count": 105,
+            "price_per_post": 229.66,
+            "bio": "Content creator focusing on Mechanical Keyboards.",
+            "niche_tags": [
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_17_7518",
+            "full_name": "User Name 17",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_17",
+            "follower_count": 6034,
+            "following_count": 93,
+            "total_likes": 370,
+            "total_comments": 5,
+            "post_count": 265,
+            "price_per_post": 40.76,
+            "bio": "Content creator focusing on B2B SaaS.",
+            "niche_tags": [
+                "Fashion"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_18_9847",
+            "full_name": "User Name 18",
+            "platform": "youtube",
+            "profile_url": "https://example.com/user_18",
+            "follower_count": 20685,
+            "following_count": 157,
+            "total_likes": 1430,
+            "total_comments": 90,
+            "post_count": 1717,
+            "price_per_post": 122.16,
+            "bio": "Content creator focusing on Gaming.",
+            "niche_tags": [
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_19_3950",
+            "full_name": "User Name 19",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_19",
+            "follower_count": 1938679,
+            "following_count": 406,
+            "total_likes": 20735,
+            "total_comments": 1014,
+            "post_count": 333,
+            "price_per_post": 6699.63,
+            "bio": "",
+            "niche_tags": [
+                "Urban Foraging"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_20_3448",
+            "full_name": "User Name 20",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_20",
+            "follower_count": 13089661,
+            "following_count": 561,
+            "total_likes": 115559,
+            "total_comments": 2892,
+            "post_count": 586,
+            "price_per_post": 50276.45,
+            "bio": "Content creator focusing on Mechanical Keyboards.",
+            "niche_tags": [
+                "Finance",
+                "B2B SaaS"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_21_8471",
+            "full_name": "User Name 21",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_21",
+            "follower_count": 12026,
+            "following_count": 792,
+            "total_likes": 873,
+            "total_comments": 83,
+            "post_count": 1276,
+            "price_per_post": 12.89,
+            "bio": "",
+            "niche_tags": [
+                "Fashion",
+                "Gaming"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_22_2844",
+            "full_name": "User Name 22",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_22",
+            "follower_count": 2292545,
+            "following_count": 690,
+            "total_likes": 23861,
+            "total_comments": 1934,
+            "post_count": 1189,
+            "price_per_post": 10058.84,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Mechanical Keyboards"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_23_9501",
+            "full_name": "User Name 23",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_23",
+            "follower_count": 4122677,
+            "following_count": 106,
+            "total_likes": 40611,
+            "total_comments": 796,
+            "post_count": 1635,
+            "price_per_post": 28411.66,
+            "bio": "",
+            "niche_tags": [
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_24_6203",
+            "full_name": "User Name 24",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_24",
+            "follower_count": 1054484,
+            "following_count": 745,
+            "total_likes": 15304,
+            "total_comments": 381,
+            "post_count": 765,
+            "price_per_post": 5464.9,
+            "bio": "",
+            "niche_tags": [
+                "Gaming",
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_25_7856",
+            "full_name": "User Name 25",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_25",
+            "follower_count": 3953952,
+            "following_count": 250,
+            "total_likes": 67972,
+            "total_comments": 4743,
+            "post_count": 804,
+            "price_per_post": 25087.23,
+            "bio": "Content creator focusing on B2B SaaS.",
+            "niche_tags": [
+                "Fitness"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_26_5141",
+            "full_name": "User Name 26",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_26",
+            "follower_count": 9273239,
+            "following_count": 567,
+            "total_likes": 44227,
+            "total_comments": 4267,
+            "post_count": 27,
+            "price_per_post": 46686.15,
+            "bio": "Content creator focusing on Mechanical Keyboards.",
+            "niche_tags": [
+                "Urban Foraging",
+                "Fashion"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_27_6474",
+            "full_name": null,
+            "platform": "youtube",
+            "profile_url": "",
+            "follower_count": 1765,
+            "following_count": 837,
+            "total_likes": 250,
+            "total_comments": 7,
+            "post_count": 1754,
+            "price_per_post": null,
+            "bio": "Content creator focusing on Fashion.",
+            "niche_tags": [
+                "Mechanical Keyboards"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_28_6475",
+            "full_name": "User Name 28",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_28",
+            "follower_count": 4586681,
+            "following_count": 480,
+            "total_likes": 74809,
+            "total_comments": 2629,
+            "post_count": 573,
+            "price_per_post": 8736.57,
+            "bio": "Content creator focusing on Fashion.",
+            "niche_tags": [
+                "Urban Foraging",
+                "Fitness"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_29_3278",
+            "full_name": null,
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_29",
+            "follower_count": 1093146,
+            "following_count": 493,
+            "total_likes": 20510,
+            "total_comments": 555,
+            "post_count": 50,
+            "price_per_post": 2339.73,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Urban Foraging",
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_30_4884",
+            "full_name": null,
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_30",
+            "follower_count": 49653,
+            "following_count": 136,
+            "total_likes": 3126,
+            "total_comments": 137,
+            "post_count": 156,
+            "price_per_post": 334.94,
+            "bio": null,
+            "niche_tags": [
+                "B2B SaaS",
+                "B2B SaaS"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_31_9897",
+            "full_name": "User Name 31",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_31",
+            "follower_count": 7258109,
+            "following_count": 114,
+            "total_likes": 50828,
+            "total_comments": 1933,
+            "post_count": 1711,
+            "price_per_post": null,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Tech",
+                "Gaming"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_32_7538",
+            "full_name": "User Name 32",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_32",
+            "follower_count": 822529,
+            "following_count": 43,
+            "total_likes": 8434,
+            "total_comments": 780,
+            "post_count": 1516,
+            "price_per_post": 5272.03,
+            "bio": "Content creator focusing on Gaming.",
+            "niche_tags": [
+                "Urban Foraging",
+                "Fashion"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_33_6054",
+            "full_name": "User Name 33",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_33",
+            "follower_count": 484192,
+            "following_count": 87,
+            "total_likes": 13902,
+            "total_comments": 1039,
+            "post_count": 12,
+            "price_per_post": 4408.77,
+            "bio": "Content creator focusing on Gaming.",
+            "niche_tags": [
+                "Fitness"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_34_1774",
+            "full_name": "User Name 34",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_34",
+            "follower_count": 4226921,
+            "following_count": 76,
+            "total_likes": 67057,
+            "total_comments": 5415,
+            "post_count": 545,
+            "price_per_post": 24628.28,
+            "bio": "",
+            "niche_tags": [
+                "Gaming",
+                "Fashion"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_35_4099",
+            "full_name": "User Name 35",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_35",
+            "follower_count": 385130,
+            "following_count": 183,
+            "total_likes": 13408,
+            "total_comments": 729,
+            "post_count": 463,
+            "price_per_post": 3611.44,
+            "bio": "Content creator focusing on Gaming.",
+            "niche_tags": [],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_36_3002",
+            "full_name": "User Name 36",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_36",
+            "follower_count": 2603,
+            "following_count": 747,
+            "total_likes": 191,
+            "total_comments": 20,
+            "post_count": 664,
+            "price_per_post": null,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Finance",
+                "Gaming"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_37_7489",
+            "full_name": "User Name 37",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_37",
+            "follower_count": 7776,
+            "following_count": 854,
+            "total_likes": 624,
+            "total_comments": 67,
+            "post_count": 1408,
+            "price_per_post": 62.66,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "B2B SaaS"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_38_2272",
+            "full_name": "User Name 38",
+            "platform": "youtube",
+            "profile_url": "https://example.com/user_38",
+            "follower_count": 2827139,
+            "following_count": 100,
+            "total_likes": 64094,
+            "total_comments": 5865,
+            "post_count": 224,
+            "price_per_post": 13916.93,
+            "bio": "Content creator focusing on Mechanical Keyboards.",
+            "niche_tags": [],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_39_4380",
+            "full_name": "User Name 39",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_39",
+            "follower_count": 10867,
+            "following_count": 921,
+            "total_likes": 515,
+            "total_comments": 15,
+            "post_count": 929,
+            "price_per_post": 66.84,
+            "bio": null,
+            "niche_tags": [
+                "Fashion"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_40_3807",
+            "full_name": "User Name 40",
+            "platform": "twitter",
+            "profile_url": "",
+            "follower_count": 1702,
+            "following_count": 417,
+            "total_likes": 83,
+            "total_comments": 4,
+            "post_count": 925,
+            "price_per_post": 14.23,
+            "bio": "Content creator focusing on Gaming.",
+            "niche_tags": [
+                "Fashion",
+                "Fashion"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_41_7318",
+            "full_name": "User Name 41",
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_41",
+            "follower_count": 720089,
+            "following_count": 771,
+            "total_likes": 6994,
+            "total_comments": 683,
+            "post_count": 1730,
+            "price_per_post": 2520.24,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Fashion",
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_42_5810",
+            "full_name": "User Name 42",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_42",
+            "follower_count": 2566786,
+            "following_count": 350,
+            "total_likes": 49579,
+            "total_comments": 996,
+            "post_count": 956,
+            "price_per_post": 23835.53,
+            "bio": "Content creator focusing on Urban Foraging.",
+            "niche_tags": [
+                "Finance",
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_43_8894",
+            "full_name": "User Name 43",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_43",
+            "follower_count": 3999,
+            "following_count": 226,
+            "total_likes": 355,
+            "total_comments": 14,
+            "post_count": 1258,
+            "price_per_post": 100000,
+            "bio": "Content creator focusing on Urban Foraging.",
+            "niche_tags": [
+                "Fashion",
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_44_1146",
+            "full_name": null,
+            "platform": "twitter",
+            "profile_url": "https://example.com/user_44",
+            "follower_count": 6120,
+            "following_count": 713,
+            "total_likes": 805,
+            "total_comments": 61,
+            "post_count": 1889,
+            "price_per_post": 8.16,
+            "bio": "Content creator focusing on Gaming.",
+            "niche_tags": [
+                "Fitness"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_45_3328",
+            "full_name": "User Name 45",
+            "platform": "tiktok",
+            "profile_url": "",
+            "follower_count": 1563753,
+            "following_count": 400,
+            "total_likes": 26099,
+            "total_comments": 2186,
+            "post_count": 563,
+            "price_per_post": 12530.06,
+            "bio": "Content creator focusing on Finance.",
+            "niche_tags": [
+                "Tech",
+                "B2B SaaS"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_46_2766",
+            "full_name": "User Name 46",
+            "platform": "instagram",
+            "profile_url": "",
+            "follower_count": 5444144,
+            "following_count": 342,
+            "total_likes": 37727,
+            "total_comments": 1962,
+            "post_count": 1197,
+            "price_per_post": 8291.17,
+            "bio": "Content creator focusing on Mechanical Keyboards.",
+            "niche_tags": [
+                "Urban Foraging",
+                "Gaming"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_47_3229",
+            "full_name": null,
+            "platform": "twitter",
+            "profile_url": "",
+            "follower_count": 1790082,
+            "following_count": 578,
+            "total_likes": 35179,
+            "total_comments": 944,
+            "post_count": 1080,
+            "price_per_post": 8962.62,
+            "bio": "Content creator focusing on Gaming.",
+            "niche_tags": [
+                "Fitness",
+                "Finance"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_48_5280",
+            "full_name": "User Name 48",
+            "platform": "instagram",
+            "profile_url": "https://example.com/user_48",
+            "follower_count": 11768152,
+            "following_count": 754,
+            "total_likes": 185713,
+            "total_comments": 18534,
+            "post_count": 508,
+            "price_per_post": 107686.81,
+            "bio": "",
+            "niche_tags": [
+                "Fashion",
+                "Fitness"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_49_6944",
+            "full_name": "User Name 49",
+            "platform": "youtube",
+            "profile_url": "https://example.com/user_49",
+            "follower_count": 237148,
+            "following_count": 87,
+            "total_likes": 4914,
+            "total_comments": 450,
+            "post_count": 465,
+            "price_per_post": 854.36,
+            "bio": "Content creator focusing on Fitness.",
+            "niche_tags": [
+                "Tech"
+            ],
+            "source": "mock_scraper"
+        },
+        {
+            "username": "user_50_1961",
+            "full_name": "User Name 50",
+            "platform": "tiktok",
+            "profile_url": "https://example.com/user_50",
+            "follower_count": 46262,
+            "following_count": 25,
+            "total_likes": 3308,
+            "total_comments": 200,
+            "post_count": 1205,
+            "price_per_post": null,
+            "bio": "Content creator focusing on Mechanical Keyboards.",
+            "niche_tags": [],
+            "source": "mock_scraper"
+        }
+    ],
+    "campaigns": [
+        {
+            "niche": "Fashion",
+            "audience": "",
+            "budget": 49330,
+            "target_reach": 916216,
+            "num_results": 10
+        },
+        {
+            "niche": "Finance",
+            "audience": "",
+            "budget": 2309,
+            "target_reach": 82599,
+            "num_results": 6
+        },
+        {
+            "niche": "Gaming",
+            "audience": "18-24 female",
+            "budget": 47675,
+            "target_reach": 269656,
+            "num_results": 7
+        },
+        {
+            "niche": "Fitness",
+            "audience": "",
+            "budget": 23823,
+            "target_reach": 246065,
+            "num_results": 4
+        },
+        {
+            "niche": "Fashion",
+            "audience": "Gen Z",
+            "budget": 26847,
+            "target_reach": 116371,
+            "num_results": 8
+        },
+        {
+            "niche": "Fashion",
+            "audience": "Gamers 15-25",
+            "budget": 33240,
+            "target_reach": 611789,
+            "num_results": 7
+        },
+        {
+            "niche": "Finance",
+            "audience": "Corporate Professionals",
+            "budget": 2989,
+            "target_reach": 479015,
+            "num_results": 9
+        },
+        {
+            "niche": "B2B SaaS",
+            "audience": "Corporate Professionals",
+            "budget": 41059,
+            "target_reach": 914161,
+            "num_results": 6
+        },
+        {
+            "niche": "B2B SaaS",
+            "audience": "Corporate Professionals",
+            "budget": 42086,
+            "target_reach": 313640,
+            "num_results": 6
+        },
+        {
+            "niche": "Fitness",
+            "audience": "Tech Enthusiasts",
+            "budget": 23571,
+            "target_reach": 149153,
+            "num_results": 10
+        }
+    ]
+}
