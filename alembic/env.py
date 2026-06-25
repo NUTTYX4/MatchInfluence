@@ -7,14 +7,15 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# IMPORT YOUR SETTINGS AND MODELS
+# Import your settings and models
 from app.config import settings
+from app.db_bootstrap import ensure_database_exists
 from app.models.influencer import Base
 import app.models.campaign 
 
 config = context.config
 
-# IMPORTANT: This forces Alembic to use your .env URL instead of the .ini file
+# Force Alembic to use your .env URL
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 if config.config_file_name is not None:
@@ -39,6 +40,7 @@ def do_run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 async def run_async_migrations() -> None:
+    await ensure_database_exists(settings.DATABASE_URL)
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

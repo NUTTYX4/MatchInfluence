@@ -1,7 +1,13 @@
 import asyncio
 import json
+import chromadb
+from sentence_transformers import SentenceTransformer
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.config import settings
 from app.database import AsyncSessionLocal
+from app.db_bootstrap import ensure_database_exists
 from app.models.influencer import Influencer
 from app.models.campaign import Campaign
 
@@ -19,24 +25,44 @@ async def seed_database():
 
     print(f"Found {len(influencers_data)} influencers and {len(campaigns_data)} campaigns.")
 
+    # --- NEW: Initialize Vector Database Engine ---
+    print("Initializing Vector Database (ChromaDB)...")
+    chroma_client = chromadb.PersistentClient(path=settings.CHROMA_DB_PATH)
+    collection = chroma_client.get_or_create_collection(
+        name="influencer_embeddings",
+        metadata={"hnsw:space": "cosine"}
+    )
+    embed_model = SentenceTransformer('all-MiniLM-L6-v2')
+    # ----------------------------------------------
+
     async with AsyncSessionLocal() as db:
         try:
             print("Fetching existing data to prevent duplicates...")
-            from sqlalchemy import select
-            
             existing_inf_result = await db.execute(select(Influencer.username))
             existing_usernames = {row[0] for row in existing_inf_result.all()}
             
-            print("Inserting influencers...")
+            print("Inserting influencers into PostgreSQL and Vectorizing...")
             for inf in influencers_data:
                 username = inf.get("username")
+
+                # --- NEW: Generate and store the Vector Embedding (Always Upsert) ---
+                niche_str = ", ".join(inf.get("niche_tags", []))
+                text_to_embed = f"Niche: {niche_str}. Bio: {inf.get('bio', '')}"
+                embedding = embed_model.encode(text_to_embed).tolist()
+                
+                collection.upsert(
+                    ids=[username],
+                    embeddings=[embedding],
+                    metadatas=[{"username": username, "platform": inf.get("platform", "unknown")}]
+                )
+                # ----------------------------------------------------
+
                 if username in existing_usernames:
                     continue
 
                 # Data cleaning
-                price = inf.get("price_per_post")
-                if price is None:
-                    price = 0.0
+                price = inf.get("price_per_post", 0.0)
+                if price is None: price = 0.0
                 
                 db_influencer = Influencer(
                     username=username,
@@ -54,7 +80,6 @@ async def seed_database():
                     source=inf.get("source")
                 )
                 
-                # Optional: Calculate initial baseline engagement rate
                 if db_influencer.follower_count > 0:
                     total_engagements = db_influencer.total_likes + db_influencer.total_comments
                     db_influencer.engagement_rate = float(total_engagements / db_influencer.follower_count)
@@ -73,10 +98,11 @@ async def seed_database():
                 db.add(db_campaign)
 
             await db.commit()
-            print("[SUCCESS] Database seeding complete! Successfully inserted influencers and campaigns.")
+            print("[SUCCESS] Database seeding complete! PostgreSQL and Vector Store are synced.")
         except Exception as e:
             print(f"[ERROR] Error during database insertion: {e}")
             await db.rollback()
 
 if __name__ == "__main__":
+    asyncio.run(ensure_database_exists(settings.DATABASE_URL))
     asyncio.run(seed_database())

@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import httpx
 import logging
 from app.config import settings
@@ -8,20 +9,18 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
     """
     Generates a natural language explanation for an influencer match using OpenRouter.
     """
-    # Dynamically pull the API key and model name, falling back to None and a default respectively
     api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
     model_name = getattr(settings, 'LLM_MODEL_NAME', 'openai/gpt-3.5-turbo')
 
-    # Graceful degradation if keys are completely missing from configuration
     if not api_key:
-        logger.warning("OPENROUTER_API_KEY is not set. Skipping LLM explanation generation.")
-        return "AI explanation temporarily unavailable."
+        logger.warning("OPENROUTER_API_KEY is not set. Skipping LLM explanation.")
+        return "AI explanation unavailable: OPENROUTER_API_KEY is missing from environment."
 
     url = "https://openrouter.ai/api/v1/chat/completions"
     
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": "http://localhost",  # Change to your actual production domain
+        "HTTP-Referer": "https://ais-dev-pgktc545fswljxbrtbe7vd-518683714187.asia-southeast1.run.app",
         "X-Title": "MatchInfluence",
         "Content-Type": "application/json"
     }
@@ -46,17 +45,24 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
         ]
     }
 
+    timeout = httpx.Timeout(15.0, connect=5.0)
+
     try:
-        # Use httpx.AsyncClient to ensure we don't block the FastAPI event loop
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             
             result = response.json()
-            explanation = result["choices"][0]["message"]["content"].strip()
-            return explanation
+            if "choices" in result and len(result["choices"]) > 0:
+                explanation = result["choices"][0]["message"]["content"].strip()
+                return explanation
+            else:
+                logger.error(f"Unexpected API response format: {result}")
+                return "AI explanation unavailable: Invalid response format."
             
+    except httpx.HTTPStatusError as e:
+        logger.error(f"OpenRouter returned status {e.response.status_code}: {e.response.text}")
+        return f"AI explanation failed (HTTP {e.response.status_code}): {e.response.text}"
     except Exception as e:
-        # Fallback mechanism so the matching pipeline never crashes
         logger.error(f"OpenRouter API error during explanation generation: {e}")
-        return "AI explanation temporarily unavailable."
+        return f"AI explanation failed. Error: {str(e)}"
