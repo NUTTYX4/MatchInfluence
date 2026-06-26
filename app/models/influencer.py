@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Integer, BigInteger, Text, JSON, DateTime, ARRAY
+from sqlalchemy import Column, String, Float, Integer, BigInteger, Text, JSON, DateTime, ARRAY, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import declarative_base
@@ -47,3 +47,17 @@ class Influencer(Base):
 
     # --- Relationships ---
     match_results = relationship("MatchResult", back_populates="influencer", cascade="all, delete-orphan")
+    metric_logs = relationship("InfluencerMetricLog", back_populates="influencer", cascade="all, delete-orphan")
+
+
+class InfluencerMetricLog(Base):
+    __tablename__ = "influencer_metric_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    influencer_id = Column(UUID(as_uuid=True), ForeignKey("influencers.id"), nullable=False)
+    recorded_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+    follower_count = Column(Integer, default=0, nullable=False)
+    avg_views = Column(Integer, nullable=True)
+    est_cpe = Column(Float, nullable=True)
+
+    influencer = relationship("Influencer", back_populates="metric_logs")

@@ -8,11 +8,13 @@ class Settings(BaseSettings):
     CHROMA_DB_PATH: str = "./chroma_data"
     
     # API Keys (To be used in later phases)
-    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://models.inference.ai.azure.com")
+    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
+    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o-mini")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
     RAPIDAPI_KEY: str = os.getenv("RAPIDAPI_KEY", "")
-    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "openai/gpt-3.5-turbo")
+    DATA_REFRESH_INTERVAL_DAYS: int = int(os.getenv("DATA_REFRESH_INTERVAL_DAYS", "7"))
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

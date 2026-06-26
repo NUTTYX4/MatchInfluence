@@ -43,23 +43,22 @@ class MatchingOrchestrator:
             if not chroma_results['ids'] or not chroma_results['ids'][0]:
                 return []
 
-            matched_uuids = chroma_results['ids'][0]
+            matched_usernames = chroma_results['ids'][0]
             semantic_distances = chroma_results['distances'][0]
             
-            # FIX: Cast ChromaDB strings to Python UUID objects for asyncpg
-            uuid_list = [uuid.UUID(uid) for uid in matched_uuids]
-            
-            # 5. HYDRATE: Fetch exact rows from PostgreSQL
-            query = select(Influencer).where(Influencer.id.in_(uuid_list))
+            # 5. HYDRATE: Fetch exact rows from PostgreSQL using usernames (since Chroma stores usernames as IDs)
+            query = select(Influencer).where(Influencer.username.in_(matched_usernames))
             db_results = await db.execute(query)
-            influencers_dict = {str(inf.id): inf for inf in db_results.scalars().all()}
+            
+            # We map by username to easily find them below
+            influencers_dict = {inf.username: inf for inf in db_results.scalars().all()}
             
             candidate_prep = []
             llm_tasks = []
             
             # 6. SCORE PREPARATION (No blocking awaits here)
-            for i, inf_id in enumerate(matched_uuids):
-                inf = influencers_dict.get(inf_id)
+            for i, username in enumerate(matched_usernames):
+                inf = influencers_dict.get(username)
                 if not inf:
                     continue
                     
@@ -80,7 +79,7 @@ class MatchingOrchestrator:
                 
                 # Store the math results
                 candidate_prep.append({
-                    "inf_id": inf_id,
+                    "inf_id": str(inf.id),
                     "inf": inf,
                     "metrics": metrics,
                     "scores": {
@@ -105,8 +104,17 @@ class MatchingOrchestrator:
                     )
                 )
             
-            # FIX: Fire all OpenRouter API calls concurrently! (The Anti-Bottleneck)
-            explanations = await asyncio.gather(*llm_tasks)
+            # FIX: Fire all OpenRouter API calls concurrently with error isolation!
+            # return_exceptions=True prevents a single timeout from crashing the whole batch
+            raw_explanations = await asyncio.gather(*llm_tasks, return_exceptions=True)
+
+            explanations = []
+            for result in raw_explanations:
+                if isinstance(result, Exception):
+                    logger.error(f"LLM task failed during concurrent execution: {result}")
+                    explanations.append(f"AI explanation temporarily unavailable. Error: {str(result)}")
+                else:
+                    explanations.append(result)
 
             final_candidates = []
             
