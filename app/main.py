@@ -50,6 +50,26 @@ async def list_campaigns(db: AsyncSession = Depends(get_db)):
     campaigns = result.scalars().all()
     return [{"id": str(c.id), "niche": c.niche, "budget": c.budget} for c in campaigns]
 
+from pydantic import BaseModel
+from app.services.data_scraper.scraper import IngestionScraperEngine
+
+class IngestRequest(BaseModel):
+    target_id: str
+    platform: str
+
+@app.post("/influencers/ingest")
+async def ingest_influencer(request: IngestRequest, db: AsyncSession = Depends(get_db)):
+    """Ingest a new influencer profile live from an external platform."""
+    try:
+        influencer_id = await IngestionScraperEngine.coordinate_live_ingestion(
+            db, request.target_id, request.platform
+        )
+        return {"status": "success", "influencer_id": influencer_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/influencers")
 async def get_influencers(db: AsyncSession = Depends(get_db)):
     """List all influencers in the PostgreSQL database."""
