@@ -22,6 +22,9 @@ class IngestionScraperEngine:
             response.raise_for_status()
             data = response.json()
             
+            import json
+            print("\n🚨 RAW YOUTUBE PAYLOAD:", json.dumps(data, indent=2), "\n")
+            
             if not data.get("items"):
                 raise ValueError(f"No YouTube channel found for ID: {channel_id}")
                 
@@ -47,41 +50,72 @@ class IngestionScraperEngine:
     @staticmethod
     async def fetch_instagram_profile(username: str) -> dict:
         """Fetch Instagram profile from a RapidAPI endpoint."""
-        if not settings.RAPIDAPI_KEY:
-            raise ValueError("RAPIDAPI_KEY is missing.")
-
-        # Using a generic instagram scraper endpoint as an example
-        # The user needs to configure the actual host based on their RapidAPI subscription
-        url = "https://instagram-data-api.p.rapidapi.com/api/instagram"
-        querystring = {"username": username}
+        if not settings.RAPIDAPI_KEY or not getattr(settings, "RAPIDAPI_HOST", None):
+            raise ValueError("RAPIDAPI_KEY or RAPIDAPI_HOST is missing from settings.")
 
         headers = {
             "x-rapidapi-key": settings.RAPIDAPI_KEY,
-            "x-rapidapi-host": "instagram-data-api.p.rapidapi.com"
+            "x-rapidapi-host": settings.RAPIDAPI_HOST,
+            "Content-Type": "application/json"
         }
-
+        
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers, params=querystring)
-            response.raise_for_status()
-            data = response.json()
-            
-            if "data" not in data:
-                raise ValueError(f"No Instagram data found for username: {username}")
+            try:
+                # Step 1: Resolve username to internal Instagram User ID
+                lookup_url = f"https://{settings.RAPIDAPI_HOST}/v2/user/by/username/"
+                lookup_response = await client.get(
+                    lookup_url, 
+                    headers=headers, 
+                    params={"username": username}, 
+                    timeout=20.0
+                )
+                lookup_response.raise_for_status()
+                lookup_data = lookup_response.json()
                 
-            info = data["data"]
-            
-            return {
-                "username": info.get("username", username),
-                "full_name": info.get("full_name"),
-                "platform": "instagram",
-                "profile_url": f"https://instagram.com/{info.get('username', username)}",
-                "follower_count": info.get("follower_count", 0),
-                "following_count": info.get("following_count", 0),
-                "post_count": info.get("media_count", 0),
-                "bio": info.get("biography", ""),
-                "niche_tags": [],
-                "source": "rapidapi"
-            }
+                # Extract the raw ID string safely
+                user_id = lookup_data.get("data", {}).get("id")
+                if not user_id:
+                    from fastapi import HTTPException
+                    raise HTTPException(status_code=404, detail=f"Instagram user '{username}' not found.")
+                    
+                # Step 2: Fetch the actual profile metrics using the resolved ID
+                details_url = f"https://{settings.RAPIDAPI_HOST}/v2/user/details/"
+                response = await client.get(
+                    details_url, 
+                    headers=headers, 
+                    params={"user_id": user_id}, 
+                    timeout=20.0
+                )
+                response.raise_for_status()
+                raw_data = response.json()
+                
+                import json
+                print("\n🚨 DEBUG INSTAGRAM RAW PAYLOAD:", json.dumps(raw_data, indent=2), "\n")
+                
+                # Safely dig into the standard data nesting returned by Glavier
+                user_info = raw_data.get("data", {})
+                
+                return {
+                    "username": username,
+                    "platform": "instagram",
+                    "profile_url": f"https://instagram.com/{username}",
+                    "follower_count": user_info.get("follower_count", 0), 
+                    "following_count": user_info.get("following_count", 0),
+                    "post_count": user_info.get("media_count", 0),
+                    "full_name": user_info.get("full_name", username),
+                    "bio": user_info.get("biography", ""),
+                    "niche_tags": [],
+                    "source": "rapidapi"
+                }
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"RapidAPI network error: {e.response.status_code} - {e.response.text}")
+                from fastapi import HTTPException
+                raise HTTPException(status_code=e.response.status_code, detail=f"RapidAPI failed: {e.response.text}")
+            except Exception as e:
+                logger.error(f"Scraper crashed internally: {str(e)}")
+                from fastapi import HTTPException
+                raise HTTPException(status_code=500, detail=f"Internal script error: {str(e)}")
 
     @staticmethod
     async def coordinate_live_ingestion(db: AsyncSession, target_id: str, platform: str) -> str:
