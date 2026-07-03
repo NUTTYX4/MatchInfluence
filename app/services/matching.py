@@ -43,22 +43,25 @@ class MatchingOrchestrator:
             if not chroma_results['ids'] or not chroma_results['ids'][0]:
                 return []
 
-            matched_usernames = chroma_results['ids'][0]
+            matched_ids = chroma_results['ids'][0]
             semantic_distances = chroma_results['distances'][0]
             
-            # 5. HYDRATE: Fetch exact rows from PostgreSQL using usernames (since Chroma stores usernames as IDs)
-            query = select(Influencer).where(Influencer.username.in_(matched_usernames))
+            # FIX: Convert ChromaDB string IDs back to UUIDs for PostgreSQL
+            matched_uuids = [uuid.UUID(id_str) for id_str in matched_ids]
+            
+            # 5. HYDRATE: Fetch exact rows from PostgreSQL using the UUIDs
+            query = select(Influencer).where(Influencer.id.in_(matched_uuids))
             db_results = await db.execute(query)
             
-            # We map by username to easily find them below
-            influencers_dict = {inf.username: inf for inf in db_results.scalars().all()}
+            # We map by ID to easily find them below
+            influencers_dict = {str(inf.id): inf for inf in db_results.scalars().all()}
             
             candidate_prep = []
             llm_tasks = []
             
             # 6. SCORE PREPARATION (No blocking awaits here)
-            for i, username in enumerate(matched_usernames):
-                inf = influencers_dict.get(username)
+            for i, match_id in enumerate(matched_ids):
+                inf = influencers_dict.get(match_id)
                 if not inf:
                     continue
                     
@@ -104,17 +107,16 @@ class MatchingOrchestrator:
                     )
                 )
             
-            # FIX: Fire all OpenRouter API calls concurrently with error isolation!
-            # return_exceptions=True prevents a single timeout from crashing the whole batch
-            raw_explanations = await asyncio.gather(*llm_tasks, return_exceptions=True)
-
+            # FIX: Fire OpenRouter API calls sequentially to avoid HTTP 429 Rate Limits from free tiers
             explanations = []
-            for result in raw_explanations:
-                if isinstance(result, Exception):
-                    logger.error(f"LLM task failed during concurrent execution: {result}")
-                    explanations.append(f"AI explanation temporarily unavailable. Error: {str(result)}")
-                else:
+            for task in llm_tasks:
+                try:
+                    result = await task
                     explanations.append(result)
+                    await asyncio.sleep(1) # 1-second delay between calls to respect rate limits
+                except Exception as e:
+                    logger.error(f"LLM task failed during sequential execution: {e}")
+                    explanations.append(f"AI explanation temporarily unavailable. Error: {str(e)}")
 
             final_candidates = []
             

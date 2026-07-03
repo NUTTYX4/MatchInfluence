@@ -1,11 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
 # Import our infrastructure and logic
 from app.database import get_db
-from app.schemas.campaign import CampaignRequest, MatchRunRequest
+from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse
 from app.services.matching import MatchingOrchestrator
-from seed_db import seed_database
 from app.config import settings
 from app.db_bootstrap import ensure_database_exists
 
@@ -13,6 +12,7 @@ from sqlalchemy.future import select
 from app.models.campaign import Campaign
 from sqlalchemy import select
 from app.models.influencer import Influencer
+
 # Initialize the API
 app = FastAPI(
     title="MatchInfluence API", 
@@ -28,20 +28,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/seed")
-async def seed_db_endpoint(background_tasks: BackgroundTasks):
-    """Seed the database with mock data. Runs in the background."""
-    async def run_seed():
-        await ensure_database_exists(settings.DATABASE_URL)
-        await seed_database()
-    background_tasks.add_task(run_seed)
-    return {"message": "Seeding started in the background. Check terminal/logs for progress."}
-
 @app.get("/")
 async def health_check():
     """Confirms the API is online."""
     return {"status": "online", "message": "MatchInfluence Engine V3 is running."}
 
+
+@app.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
+async def create_campaign(
+    campaign_in: CampaignCreate, 
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create a new campaign and store it in PostgreSQL.
+    Returns the campaign data including the newly generated UUID.
+    """
+    try:
+        new_campaign = Campaign(
+            niche=campaign_in.niche,
+            audience=campaign_in.audience,
+            budget=campaign_in.budget,
+            target_reach=campaign_in.target_reach,
+            brief_text=campaign_in.brief_text,
+        )
+        
+        db.add(new_campaign)
+        await db.commit()
+        await db.refresh(new_campaign)
+        
+        return new_campaign
+        
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create campaign: {str(e)}"
+        )
 
 @app.get("/campaigns")
 async def list_campaigns(db: AsyncSession = Depends(get_db)):
@@ -65,6 +87,8 @@ async def ingest_influencer(request: IngestRequest, db: AsyncSession = Depends(g
             db, request.target_id, request.platform
         )
         return {"status": "success", "influencer_id": influencer_id}
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

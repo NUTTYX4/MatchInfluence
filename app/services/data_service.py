@@ -59,9 +59,9 @@ class DataIngestionService:
                 await db.commit()
                 await db.refresh(existing_influencer)
 
-                # Run chroma_collection.update()
+                # Run chroma_collection.upsert()
                 semantic_document = f"Bio: {existing_influencer.bio or ''} Recent Posts: {existing_influencer.recent_posts or ''}"
-                chroma_collection.update(
+                chroma_collection.upsert(
                     ids=[str(existing_influencer.id)],
                     embeddings=[embedding],
                     documents=[semantic_document],
@@ -117,7 +117,7 @@ class DataIngestionService:
         semantic_document = f"Bio: {db_influencer.bio or ''} Recent Posts: {db_influencer.recent_posts or ''}"
         
         # 6. Write to ChromaDB using the exact same ID string
-        chroma_collection.add(
+        chroma_collection.upsert(
             ids=[shared_uuid],
             embeddings=[embedding],
             documents=[semantic_document],

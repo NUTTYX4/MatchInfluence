@@ -1,139 +1,108 @@
-# MatchInfluence V3
+# MatchInfluence V3 🚀
 
-MatchInfluence is an AI-powered platform for smart influencer-campaign matching. Version 3 introduces an asynchronous, high-performance architecture, robust database management, and AI-driven matching services.
+MatchInfluence is an enterprise-grade, AI-powered platform for smart influencer-campaign matching. Version 3 introduces a decoupled asynchronous architecture, multi-dimensional semantic vector search, and automated background data ingestion.
 
-## 🚀 Architecture Overview
+## 🧠 Core Architecture
 
-- **Framework:** FastAPI (Asynchronous)
-- **Database:** PostgreSQL
-- **ORM:** SQLAlchemy (Async)
-- **Migrations:** Alembic
-- **AI Integration:** LLM-driven matching services
+*   **Backend Framework:** FastAPI (Asynchronous)
+*   **Relational Database:** PostgreSQL (via asyncpg & SQLAlchemy)
+*   **Vector Database:** ChromaDB (Cosine similarity for semantic search)
+*   **Frontend UI:** React + TypeScript + Vite + Tailwind CSS
+*   **Migrations:** Alembic
 
----
+### AI Engines:
 
-## 🛠 Prerequisites
+*   **Data Ingestion/Crawling:** Google Gemini (gemini-3.1-flash-lite) via native API
+*   **Match Rationale/Scoring:** GitHub Models (gpt-4o-mini)
+*   **Vector Embeddings:** HuggingFace (all-MiniLM-L6-v2)
 
-Ensure the following tools are installed:
+### Data Scrapers:
+*   Apify (instagram-profile-scraper) & YouTube Data API v3
 
-- Python 3.10+
-- PostgreSQL
-- `pip`
-- `venv`
+## ✨ Key Features
 
----
+*   **Semantic Proximity Search:** Moves beyond static keyword tags. Campaigns are matched using 384-dimensional vector embeddings, allowing natural language briefs to find contextually relevant creators.
+*   **Dual-Model AI Pipeline:**
+    *   A lightweight, continuous background crawler uses Google AI Studio to fetch and sanitize new creators.
+    *   A heavy-duty reasoning engine uses GitHub Models to generate natural-language rationale explaining why a specific creator fits a campaign.
+*   **Mathematical Authenticity Scoring:** Calculates a composite fit score combining vector distance with strict engagement rate (ER), comment-like ratio (CLR), and follower-following ratio (FFR) metrics to penalize bot-heavy accounts.
+*   **Live Demo Mode Frontend:** A robust React interface that dynamically visualizes campaign strategy vectors, budget metrics, and matched influencer matrices.
 
-## ⚙️ Setup Instructions
+## 🛠️ Setup & Installation
 
 ### 1. Environment Initialization
 
 Clone the repository and set up your virtual environment:
 
-```powershell
-# Create and activate environment
+```bash
+# Windows
 python -m venv venv
 .\venv\Scripts\Activate.ps1
+
+# Mac/Linux
+python3 -m venv venv
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
----
+### 2. Environment Variables (.env)
 
-### 2. Database Configuration
+Create a `.env` file in the root directory:
 
-Create a `.env` file in the root directory based on the `.env.example` template:
+```env
+# Database Configuration
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/matchinfluence
+CHROMA_DB_PATH=./chroma_data
+DATA_REFRESH_INTERVAL_DAYS=7
 
-```ini
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/matchinfluence_test
-OPENROUTER_API_KEY=your_key_here
+# FastAPI Match Engine (Handles Matching Rationale)
+LLM_BASE_URL=https://models.github.ai/inference
+LLM_API_KEY=github_pat_YOUR_TOKEN
+LLM_MODEL_NAME=gpt-4o-mini
+
+# Background Ingestion Engine
+GEMINI_API_KEY=your_gemini_key
+GEMINI_MODEL=gemini-3.1-flash-lite
+
+# External Scrapers
+YOUTUBE_API_KEY=your_youtube_key
+APIFY_TOKEN=your_apify_token
+APIFY_INSTAGRAM_URL=https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items
 ```
-
----
 
 ### 3. Database Migrations
 
-We use Alembic to manage schema evolution.
+Initialize the PostgreSQL schema:
 
-```powershell
-# Initialize Alembic (if missing)
-alembic init alembic
-
-# Generate the migration script from current models
-alembic revision --autogenerate -m "Initial V3 schema"
-
-# Apply the migration to the database
+```bash
 alembic upgrade head
 ```
 
----
+## 🚀 Running the Platform
 
-### 4. Data Seeding
+You need to run the backend and frontend simultaneously.
 
-Populate the database with initial records to begin testing:
+**Terminal 1: Start the FastAPI Backend**
 
-```powershell
-python seed_db.py
+```bash
+uvicorn app.main:app --reload
 ```
+API Docs available at: `http://127.0.0.1:8000/docs`
 
----
+**Terminal 2: Start the React Frontend**
 
-## 📂 Project Structure
-
-```text
-/app
- ├── Core business logic
- └── FastAPI routes
-
-/app/models
- ├── SQLAlchemy model definitions
- ├── influencer.py
- └── campaign.py
-
-/alembic
- ├── Migration scripts
- ├── Version history
- └── env.py (Async configured)
-
-/app/services
- ├── AI services
- └── Matching engine components
+```bash
+cd frontend-ui
+npm install
+npm run dev
 ```
+UI available at: `http://localhost:3000`
 
----
+**Terminal 3 (Optional): Start the Background Crawler**
+To begin autonomously hydrating the database with new influencers:
 
-## 💡 Development Workflow (The Golden Rule)
-
-Whenever you modify your database models, follow this migration cycle to ensure synchronization:
-
-### 1. Modify
-
-Update your SQLAlchemy classes:
-
-```text
-app/models/
+```bash
+python scraper_crawler.py
 ```
-
-### 2. Generate
-
-Create a new Alembic migration:
-
-```powershell
-alembic revision --autogenerate -m "Description of change"
-```
-
-### 3. Apply
-
-Sync the database:
-
-```powershell
-alembic upgrade head
-```
-
----
-
-## 🚀 Version
-
-**MatchInfluence V3**
-
-Optimized for scale, performance, and developer efficiency.
