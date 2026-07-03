@@ -1,11 +1,3 @@
-# pyrefly: ignore [missing-import]
-import asyncio
-import httpx
-import logging
-from app.config import settings
-
-# pyrefly: ignore [missing-import]
-import asyncio
 import httpx
 import logging
 from app.config import settings
@@ -14,22 +6,20 @@ logger = logging.getLogger(__name__)
 
 async def generate_explanation(campaign_context: str, influencer_data: dict, fit_score: float) -> str:
     """
-    Generates a natural language explanation for an influencer match using OpenRouter.
+    Generates a natural language explanation for an influencer match using an LLM API.
     """
     api_key = getattr(settings, 'LLM_API_KEY', None)
-    base_url = getattr(settings, 'LLM_BASE_URL', 'https://models.inference.ai.azure.com')
     model_name = getattr(settings, 'LLM_MODEL_NAME', 'gpt-4o-mini')
+    base_url = getattr(settings, 'LLM_BASE_URL', 'https://models.github.ai/inference').rstrip('/')
 
     if not api_key:
         logger.warning("LLM_API_KEY is not set. Skipping LLM explanation.")
         return "AI explanation unavailable: LLM_API_KEY is missing from environment."
 
-    url = f"{base_url.rstrip('/')}/chat/completions"
+    url = f"{base_url}/chat/completions"
     
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": "https://ais-dev-pgktc545fswljxbrtbe7vd-518683714187.asia-southeast1.run.app",
-        "X-Title": "MatchInfluence",
         "Content-Type": "application/json"
     }
 
@@ -54,10 +44,13 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
     }
 
     timeout = httpx.Timeout(15.0, connect=5.0)
-    max_retries = 3
-    base_backoff = 2.0
 
-    for attempt in range(max_retries + 1):
+    max_retries = 3
+    base_backoff = 2
+
+    import asyncio
+
+    for attempt in range(max_retries):
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(url, headers=headers, json=payload)
@@ -76,6 +69,12 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
                 retry_after = e.response.headers.get("Retry-After")
                 if retry_after and retry_after.isdigit():
                     delay = int(retry_after)
+                    
+                    # 🚀 THE FIX: The Circuit Breaker 
+                    # If the API demands we wait longer than 15 seconds, abandon the explanation.
+                    if delay > 15:
+                        logger.warning(f"Rate limit timeout too long ({delay}s). Skipping AI explanation.")
+                        return "AI explanation skipped: API rate limit exceeded."
                 else:
                     # Exponential backoff: 2s, 4s, 8s
                     delay = base_backoff * (2 ** attempt)
@@ -86,7 +85,8 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
                 
             logger.error(f"LLM Provider returned status {e.response.status_code}: {e.response.text}")
             return f"AI explanation failed (HTTP {e.response.status_code}): {e.response.text}"
-            
         except Exception as e:
-            logger.error(f"LLM Provider API error during explanation generation: {e}")
+            logger.error(f"LLM API error during explanation generation: {e}")
             return f"AI explanation failed. Error: {str(e)}"
+    
+    return "AI explanation unavailable: Max retries exceeded."
