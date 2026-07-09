@@ -12,6 +12,7 @@ class Campaign(Base):
     __tablename__ = "campaigns"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     niche = Column(String(200), nullable=False)
     audience = Column(String(500), nullable=False)
     budget = Column(Float, nullable=False)
@@ -23,6 +24,7 @@ class Campaign(Base):
     created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
 
     # --- Relationships ---
+    owner = relationship("User", back_populates="campaigns")
     results = relationship("MatchResult", back_populates="campaign", cascade="all, delete-orphan")
 
 

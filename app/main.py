@@ -8,11 +8,12 @@ from app.services.matching import MatchingOrchestrator
 from app.config import settings
 from app.db_bootstrap import ensure_database_exists
 
+from app.core.security import get_current_user
 from sqlalchemy.future import select
 from app.models.campaign import Campaign
 from sqlalchemy import select
 from app.models.influencer import Influencer
-
+from app.routers import auth
 # Initialize the API
 app = FastAPI(
     title="MatchInfluence API", 
@@ -20,9 +21,11 @@ app = FastAPI(
     version="3.0"
 )
 
+app.include_router(auth.router)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"], 
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,7 +40,8 @@ async def health_check():
 @app.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
 async def create_campaign(
     campaign_in: CampaignCreate, 
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
 ):
     """
     Create a new campaign and store it in PostgreSQL.
@@ -45,6 +49,7 @@ async def create_campaign(
     """
     try:
         new_campaign = Campaign(
+            owner_id=current_user_id,
             niche=campaign_in.niche,
             audience=campaign_in.audience,
             budget=campaign_in.budget,
@@ -66,9 +71,12 @@ async def create_campaign(
         )
 
 @app.get("/campaigns")
-async def list_campaigns(db: AsyncSession = Depends(get_db)):
+async def list_campaigns(
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
+):
     """Temporary endpoint to fetch all live campaign IDs."""
-    result = await db.execute(select(Campaign))
+    result = await db.execute(select(Campaign).where(Campaign.owner_id == current_user_id))
     campaigns = result.scalars().all()
     return [{"id": str(c.id), "niche": c.niche, "budget": c.budget} for c in campaigns]
 
@@ -102,13 +110,17 @@ async def get_influencers(db: AsyncSession = Depends(get_db)):
     return influencers
 
 @app.post("/match")
-async def match_influencers(request: MatchRunRequest, db: AsyncSession = Depends(get_db)):
+async def match_influencers(
+    request: MatchRunRequest, 
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
+):
     """
     The core matching endpoint. Takes a campaign ID, fetches real details,
     queries ChromaDB, and scores them using PostgreSQL metrics.
     """
     try:
-        results = await MatchingOrchestrator.find_best_matches(db, request)
+        results = await MatchingOrchestrator.find_best_matches(db, request, current_user_id)
         
         return {
             "campaign_id": str(request.campaign_id),
