@@ -68,6 +68,20 @@ class MatchRunRequest(BaseModel):
     campaign_id: UUID
     num_results: int = Field(default=5, ge=1, le=50)
 
+class AnalyzeBriefRequest(BaseModel):
+    prompt: str = Field(..., description="User's natural language input for campaign generation")
+
+from typing import Optional, List, Dict
+
+class AnalyzeBriefResponse(BaseModel):
+    niche: Optional[str] = None
+    audience: Optional[str] = None
+    budget: Optional[float] = None
+    target_reach: Optional[int] = None
+    missing_fields: List[str] = []
+    suggestions: Dict[str, List[str]] = {}
+    is_complete: bool = False
+
 class CampaignGenerateRequest(BaseModel):
     prompt: str = Field(..., description="User's natural language input for campaign generation")
 

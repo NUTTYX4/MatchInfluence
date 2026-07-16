@@ -3,9 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
 # Import our infrastructure and logic
 from app.database import get_db
-from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse, CampaignGenerateRequest
+from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse, CampaignGenerateRequest, AnalyzeBriefRequest, AnalyzeBriefResponse
 from app.services.matching import MatchingOrchestrator
-from app.services.llm import extract_campaign_parameters
+from app.services.llm import extract_campaign_parameters, analyze_brief_intent
 from app.config import settings
 from app.db_bootstrap import ensure_database_exists
 
@@ -69,6 +69,24 @@ async def create_campaign(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create campaign: {str(e)}"
+        )
+
+@app.post("/campaigns/analyze", response_model=AnalyzeBriefResponse, status_code=status.HTTP_200_OK)
+async def analyze_campaign_brief(
+    request: AnalyzeBriefRequest,
+    current_user_id: str = Depends(get_current_user)
+):
+    """
+    Analyzes a brief and returns missing parameters and suggestions.
+    Does not save to database.
+    """
+    try:
+        extracted = await analyze_brief_intent(request.prompt)
+        return extracted
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze brief: {str(e)}"
         )
 
 @app.post("/campaigns/generate", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)

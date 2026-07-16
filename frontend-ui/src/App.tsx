@@ -23,6 +23,16 @@ type MatchResult = {
   explanation: string;
 };
 
+type AnalysisData = {
+  niche?: string | null;
+  audience?: string | null;
+  budget?: number | null;
+  target_reach?: number | null;
+  missing_fields: string[];
+  suggestions: Record<string, string[]>;
+  is_complete: boolean;
+};
+
 export default function App() {
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,6 +52,8 @@ export default function App() {
   // Magic Search Box State
   const [magicPrompt, setMagicPrompt] = useState('');
   const [magicLoading, setMagicLoading] = useState(false);
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Create Campaign State
   const [newCampaignNiche, setNewCampaignNiche] = useState('');
@@ -57,7 +69,7 @@ export default function App() {
     setAuthError('');
     try {
       const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
+      const response = await fetch(`${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -90,7 +102,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:8000/auth/logout', {
+      await fetch('/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });
@@ -107,7 +119,7 @@ export default function App() {
   const fetchCampaigns = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const response = await fetch('http://localhost:8000/campaigns', {
+      const response = await fetch('/campaigns', {
         credentials: 'include'
       });
       if (response.status === 401) {
@@ -137,7 +149,7 @@ export default function App() {
     e.preventDefault();
     setCreatingCampaign(true);
     try {
-      const response = await fetch('http://localhost:8000/campaigns', {
+      const response = await fetch('/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -180,7 +192,7 @@ export default function App() {
     setLoading(true);
     setResults([]);
     try {
-      const response = await fetch('http://localhost:8000/match', {
+      const response = await fetch('/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -202,6 +214,64 @@ export default function App() {
     }
   };
 
+  const handleAnalyzeBrief = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!magicPrompt.trim()) return;
+
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/campaigns/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: magicPrompt })
+      });
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      if (!response.ok) throw new Error("Failed to analyze brief");
+      
+      const data = await response.json();
+      setAnalysisData(data);
+    } catch (err) {
+      console.error("Analysis failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    const newPrompt = magicPrompt.trim() + " " + suggestion;
+    setMagicPrompt(newPrompt);
+    
+    // Automatically re-analyze with the appended context
+    handleReAnalyze(newPrompt);
+  };
+  
+  const handleReAnalyze = async (promptText: string) => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/campaigns/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: promptText })
+      });
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      if (response.ok) {
+        setAnalysisData(await response.json());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Magic Search Box Match
   const handleMagicMatch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,7 +280,7 @@ export default function App() {
     setMagicLoading(true);
     try {
       // 1. Generate campaign from prompt
-      const genResponse = await fetch('http://localhost:8000/campaigns/generate', {
+      const genResponse = await fetch('/campaigns/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -240,7 +310,7 @@ export default function App() {
       // 4. Run match engine immediately with the new ID
       setLoading(true);
       setResults([]);
-      const matchResponse = await fetch('http://localhost:8000/match', {
+      const matchResponse = await fetch('/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -368,21 +438,82 @@ export default function App() {
                 <BrainCircuit className="text-indigo-600" size={24} />
                 Magic Search
               </h2>
-              <form onSubmit={handleMagicMatch} className="space-y-4">
+              <form onSubmit={analysisData?.is_complete ? handleMagicMatch : handleAnalyzeBrief} className="space-y-4">
                 <textarea
                   className="w-full bg-white border border-indigo-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none h-32 text-sm text-slate-800 placeholder-slate-400"
                   placeholder='e.g. "I need tech reviewers for a new keyboard launch, budget is 5k"'
                   value={magicPrompt}
-                  onChange={(e) => setMagicPrompt(e.target.value)}
+                  onChange={(e) => {
+                     setMagicPrompt(e.target.value);
+                     if (analysisData?.is_complete) setAnalysisData(null);
+                  }}
                   required
                 />
-                <button
-                  type="submit"
-                  disabled={magicLoading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
-                >
-                  {magicLoading ? <Loader2 className="animate-spin" size={20} /> : 'Magic Match'}
-                </button>
+
+                {/* AI Prompt Co-Pilot Checklist */}
+                {analysisData && !analysisData.is_complete && (
+                  <div className="bg-white/80 rounded-lg p-4 border border-indigo-100 shadow-sm text-sm space-y-3">
+                    <h3 className="font-semibold text-indigo-900 mb-2">Parameter Extraction</h3>
+                    
+                    <ul className="space-y-2">
+                      {['niche', 'audience', 'budget', 'target_reach'].map(field => {
+                        const isMissing = analysisData.missing_fields.includes(field);
+                        const val = (analysisData as any)[field];
+                        
+                        return (
+                          <li key={field} className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2">
+                              {isMissing ? (
+                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                              ) : (
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              )}
+                              <span className="capitalize font-medium text-slate-700">
+                                {field.replace('_', ' ')}: 
+                              </span>
+                              <span className={isMissing ? "text-red-500 font-medium" : "text-slate-600"}>
+                                {isMissing ? "Missing" : String(val)}
+                              </span>
+                            </div>
+                            
+                            {isMissing && analysisData.suggestions[field] && (
+                              <div className="flex flex-wrap gap-2 pl-3.5 mt-1">
+                                {analysisData.suggestions[field].map(sug => (
+                                  <button
+                                    key={sug}
+                                    type="button"
+                                    onClick={() => handleSuggestionClick(sug)}
+                                    className="text-[11px] bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded-full transition-colors border border-indigo-200/50"
+                                  >
+                                    + {sug}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {(!analysisData || !analysisData.is_complete) ? (
+                  <button
+                    type="submit"
+                    disabled={isAnalyzing || magicLoading}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    {isAnalyzing ? <Loader2 className="animate-spin" size={20} /> : 'Analyze Brief'}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={magicLoading}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-400 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                  >
+                    {magicLoading ? <Loader2 className="animate-spin" size={20} /> : 'Search'}
+                  </button>
+                )}
               </form>
             </div>
 
