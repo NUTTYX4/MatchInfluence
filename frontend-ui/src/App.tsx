@@ -69,7 +69,7 @@ export default function App() {
     setAuthError('');
     try {
       const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
-      const response = await fetch(`${endpoint}`, {
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -102,7 +102,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/auth/logout', {
+      await fetch('http://localhost:8000/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });
@@ -119,7 +119,7 @@ export default function App() {
   const fetchCampaigns = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const response = await fetch('/campaigns', {
+      const response = await fetch('http://localhost:8000/campaigns', {
         credentials: 'include'
       });
       if (response.status === 401) {
@@ -149,7 +149,7 @@ export default function App() {
     e.preventDefault();
     setCreatingCampaign(true);
     try {
-      const response = await fetch('/campaigns', {
+      const response = await fetch('http://localhost:8000/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -192,7 +192,7 @@ export default function App() {
     setLoading(true);
     setResults([]);
     try {
-      const response = await fetch('/match', {
+      const response = await fetch('http://localhost:8000/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -220,7 +220,7 @@ export default function App() {
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch('/campaigns/analyze', {
+      const response = await fetch('http://localhost:8000/campaigns/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -252,7 +252,7 @@ export default function App() {
   const handleReAnalyze = async (promptText: string) => {
     setIsAnalyzing(true);
     try {
-      const response = await fetch('/campaigns/analyze', {
+      const response = await fetch('http://localhost:8000/campaigns/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -280,7 +280,7 @@ export default function App() {
     setMagicLoading(true);
     try {
       // 1. Generate campaign from prompt
-      const genResponse = await fetch('/campaigns/generate', {
+      const genResponse = await fetch('http://localhost:8000/campaigns/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -310,7 +310,7 @@ export default function App() {
       // 4. Run match engine immediately with the new ID
       setLoading(true);
       setResults([]);
-      const matchResponse = await fetch('/match', {
+      const matchResponse = await fetch('http://localhost:8000/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
