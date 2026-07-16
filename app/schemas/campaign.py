@@ -67,3 +67,12 @@ class MatchRunRequest(BaseModel):
     """Clean payload for running the AI engine against an existing campaign."""
     campaign_id: UUID
     num_results: int = Field(default=5, ge=1, le=50)
+
+class CampaignGenerateRequest(BaseModel):
+    prompt: str = Field(..., description="User's natural language input for campaign generation")
+
+class CampaignExtractedData(BaseModel):
+    niche: str
+    audience: str
+    budget: float
+    target_reach: int

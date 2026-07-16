@@ -3,8 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
 # Import our infrastructure and logic
 from app.database import get_db
-from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse
+from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse, CampaignGenerateRequest
 from app.services.matching import MatchingOrchestrator
+from app.services.llm import extract_campaign_parameters
 from app.config import settings
 from app.db_bootstrap import ensure_database_exists
 
@@ -68,6 +69,42 @@ async def create_campaign(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create campaign: {str(e)}"
+        )
+
+@app.post("/campaigns/generate", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
+async def generate_campaign(
+    request: CampaignGenerateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
+):
+    """
+    Takes a natural language prompt, uses an LLM to extract campaign parameters,
+    creates the campaign in the database, and returns it.
+    """
+    try:
+        # 1. Extract parameters using LLM
+        extracted = await extract_campaign_parameters(request.prompt)
+        
+        # 2. Create database record
+        new_campaign = Campaign(
+            owner_id=current_user_id,
+            niche=extracted["niche"],
+            audience=extracted["audience"],
+            budget=extracted["budget"],
+            target_reach=extracted["target_reach"],
+            brief_text=request.prompt,
+        )
+        
+        db.add(new_campaign)
+        await db.commit()
+        await db.refresh(new_campaign)
+        
+        return new_campaign
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate campaign: {str(e)}"
         )
 
 @app.get("/campaigns")

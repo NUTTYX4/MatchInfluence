@@ -39,6 +39,10 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<MatchResult[]>([]);
 
+  // Magic Search Box State
+  const [magicPrompt, setMagicPrompt] = useState('');
+  const [magicLoading, setMagicLoading] = useState(false);
+
   // Create Campaign State
   const [newCampaignNiche, setNewCampaignNiche] = useState('');
   const [newCampaignAudience, setNewCampaignAudience] = useState('');
@@ -198,6 +202,70 @@ export default function App() {
     }
   };
 
+  // Magic Search Box Match
+  const handleMagicMatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!magicPrompt.trim()) return;
+
+    setMagicLoading(true);
+    try {
+      // 1. Generate campaign from prompt
+      const genResponse = await fetch('http://localhost:8000/campaigns/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          prompt: magicPrompt
+        })
+      });
+      
+      if (genResponse.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      
+      if (!genResponse.ok) {
+        throw new Error("Failed to generate campaign");
+      }
+      
+      const genData = await genResponse.json();
+      const newCampaignId = genData.id;
+      
+      // 2. Set selected campaign ID
+      setSelectedCampaignId(newCampaignId);
+      
+      // 3. Fetch updated campaigns list
+      await fetchCampaigns();
+
+      // 4. Run match engine immediately with the new ID
+      setLoading(true);
+      setResults([]);
+      const matchResponse = await fetch('http://localhost:8000/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          campaign_id: newCampaignId,
+          num_results: numResults
+        })
+      });
+      
+      if (matchResponse.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      
+      const matchData = await matchResponse.json();
+      setResults(matchData.results || []);
+      
+    } catch (error) {
+      console.error("Magic Match failed:", error);
+    } finally {
+      setMagicLoading(false);
+      setLoading(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -292,11 +360,36 @@ export default function App() {
       <main className="max-w-7xl mx-auto p-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Column: Create Campaign */}
-          <div className="w-full lg:w-1/3">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 sticky top-8">
+          <div className="w-full lg:w-1/3 space-y-6">
+            
+            {/* Magic Search Box */}
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-2xl shadow-sm border border-indigo-100">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-indigo-900 mb-4">
+                <BrainCircuit className="text-indigo-600" size={24} />
+                Magic Search
+              </h2>
+              <form onSubmit={handleMagicMatch} className="space-y-4">
+                <textarea
+                  className="w-full bg-white border border-indigo-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none h-32 text-sm text-slate-800 placeholder-slate-400"
+                  placeholder='e.g. "I need tech reviewers for a new keyboard launch, budget is 5k"'
+                  value={magicPrompt}
+                  onChange={(e) => setMagicPrompt(e.target.value)}
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={magicLoading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  {magicLoading ? <Loader2 className="animate-spin" size={20} /> : 'Magic Match'}
+                </button>
+              </form>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800 mb-6">
                 <PlusCircle className="text-blue-600" size={24} />
-                Create Campaign
+                Shape a Brief
               </h2>
               <form onSubmit={handleCreateCampaign} className="space-y-4">
                 <div>
@@ -350,7 +443,7 @@ export default function App() {
                   disabled={creatingCampaign}
                   className="w-full mt-2 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
                 >
-                  {creatingCampaign ? <Loader2 className="animate-spin" size={20} /> : 'Create Campaign'}
+                  {creatingCampaign ? <Loader2 className="animate-spin" size={20} /> : 'Search'}
                 </button>
               </form>
             </div>
@@ -417,7 +510,7 @@ export default function App() {
                       Processing...
                     </>
                   ) : (
-                    "Match"
+                    "Search"
                   )}
                 </button>
               </div>
@@ -427,7 +520,7 @@ export default function App() {
             {loading && (
               <div className="flex flex-col items-center justify-center py-24 text-slate-500">
                 <Loader2 className="animate-spin text-blue-600 mb-6" size={56} />
-                <p className="text-xl font-semibold text-slate-800 mb-2 animate-pulse">Running AI Semantic Match...</p>
+                <p className="text-xl font-semibold text-slate-800 mb-2 animate-pulse">Analyzing Candidates &amp; Vectorizing Context...</p>
                 <p className="text-slate-500">Evaluating multi-dimensional authenticity and composite fit scoring</p>
               </div>
             )}
@@ -437,7 +530,7 @@ export default function App() {
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
                   <CheckCircle2 className="text-emerald-500" size={28} />
-                  <h2 className="text-2xl font-bold text-slate-800">Top Candidates Found</h2>
+                  <h2 className="text-2xl font-bold text-slate-800">Top Creators Found</h2>
                   <span className="ml-auto bg-slate-100 text-slate-600 py-1 px-3 rounded-full text-sm font-bold">
                     {results.length} Results
                   </span>
@@ -463,12 +556,13 @@ export default function App() {
                             <span className="block text-2xl font-black text-emerald-600">
                               {(candidate.scores.composite_fit * 100).toFixed(1)}%
                             </span>
-                            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest">Fit</span>
+                            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest">Fit Score</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Stats Grid */}
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-2 px-1">Alignment Index</p>
                       <div className="grid grid-cols-3 gap-px bg-slate-100">
                         <div className="bg-white p-5 text-center">
                           <User size={18} className="mx-auto text-blue-500 mb-2" />
@@ -493,6 +587,7 @@ export default function App() {
 
                       {/* AI Explanation Quote Box */}
                       <div className="p-6 bg-gradient-to-b from-white to-blue-50/30 flex-1 flex flex-col justify-end">
+                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">The Synapse</h4>
                         <div className="relative">
                           <Quote className="absolute -top-2 -left-2 text-blue-200/50 w-8 h-8" />
                           <p className="text-sm font-medium text-slate-700 leading-relaxed italic relative z-10 pl-2">

@@ -1,8 +1,84 @@
 import httpx
 import logging
+import json
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+async def extract_campaign_parameters(user_prompt: str) -> dict:
+    """
+    Extracts structured campaign data from a natural language prompt.
+    Returns a dict matching CampaignExtractedData schema.
+    """
+    api_key = getattr(settings, 'LLM_API_KEY', None)
+    model_name = getattr(settings, 'LLM_MODEL_NAME', 'gpt-4o-mini')
+    base_url = getattr(settings, 'LLM_BASE_URL', 'https://models.github.ai/inference').rstrip('/')
+
+    if not api_key:
+        logger.warning("LLM_API_KEY is not set. Using fallback campaign parameters.")
+        return {
+            "niche": "General",
+            "audience": "General Audience",
+            "budget": 1000.0,
+            "target_reach": 10000
+        }
+
+    url = f"{base_url}/chat/completions"
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    system_prompt = (
+        "You are an expert campaign configuration assistant. "
+        "Extract the following parameters from the user's input: "
+        "niche (string), audience (string), budget (number), target_reach (integer). "
+        "Return ONLY a JSON object with these 4 keys. "
+        "If budget is not mentioned, use 1000.0. "
+        "If target_reach is not mentioned, use 10000. "
+        "If niche or audience are not clear, deduce a reasonable default based on the text."
+    )
+
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "response_format": {"type": "json_object"}
+    }
+
+    timeout = httpx.Timeout(15.0, connect=5.0)
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            
+            result = response.json()
+            if "choices" in result and len(result["choices"]) > 0:
+                content = result["choices"][0]["message"]["content"].strip()
+                extracted_data = json.loads(content)
+                
+                # Ensure types and defaults
+                return {
+                    "niche": str(extracted_data.get("niche", "General")),
+                    "audience": str(extracted_data.get("audience", "General Audience")),
+                    "budget": float(extracted_data.get("budget", 1000.0)),
+                    "target_reach": int(extracted_data.get("target_reach", 10000))
+                }
+            else:
+                logger.error(f"Unexpected API response format: {result}")
+    except Exception as e:
+        logger.error(f"LLM API error during parameter extraction: {e}")
+        
+    return {
+        "niche": "General",
+        "audience": "General Audience",
+        "budget": 1000.0,
+        "target_reach": 10000
+    }
 
 async def generate_explanation(campaign_context: str, influencer_data: dict, fit_score: float) -> str:
     """
