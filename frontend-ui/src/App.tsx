@@ -55,6 +55,81 @@ export default function App() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  const handleAnalyzeBrief = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!magicPrompt.trim()) return;
+
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('http://localhost:8000/campaigns/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: magicPrompt })
+      });
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      if (!response.ok) throw new Error("Failed to analyze brief");
+      
+      const data = await response.json();
+      setAnalysisData(data);
+    } catch (err) {
+      console.error("Analysis failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSuggestionClick = (field: string, suggestion: string) => {
+    let sentence = "";
+    switch (field) {
+      case 'niche':
+        sentence = `We are focusing on the ${suggestion} niche.`;
+        break;
+      case 'audience':
+        sentence = `Our target audience is ${suggestion}.`;
+        break;
+      case 'budget':
+        sentence = `We have a budget of $${suggestion}.`;
+        break;
+      case 'target_reach':
+        sentence = `We are aiming for a target reach of ${suggestion} people.`;
+        break;
+      default:
+        sentence = suggestion;
+    }
+    const newPrompt = magicPrompt.trim() + (magicPrompt.trim() ? " " : "") + sentence;
+    setMagicPrompt(newPrompt);
+    
+    // Automatically re-analyze with the appended context
+    handleReAnalyze(newPrompt);
+  };
+  
+  const handleReAnalyze = async (promptText: string) => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('http://localhost:8000/campaigns/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: promptText })
+      });
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      if (response.ok) {
+        setAnalysisData(await response.json());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Create Campaign State
   const [newCampaignNiche, setNewCampaignNiche] = useState('');
   const [newCampaignAudience, setNewCampaignAudience] = useState('');
@@ -211,64 +286,6 @@ export default function App() {
       console.error("Match failed:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAnalyzeBrief = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!magicPrompt.trim()) return;
-
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch('http://localhost:8000/campaigns/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ prompt: magicPrompt })
-      });
-      if (response.status === 401) {
-        setIsAuthenticated(false);
-        return;
-      }
-      if (!response.ok) throw new Error("Failed to analyze brief");
-      
-      const data = await response.json();
-      setAnalysisData(data);
-    } catch (err) {
-      console.error("Analysis failed:", err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    const newPrompt = magicPrompt.trim() + " " + suggestion;
-    setMagicPrompt(newPrompt);
-    
-    // Automatically re-analyze with the appended context
-    handleReAnalyze(newPrompt);
-  };
-  
-  const handleReAnalyze = async (promptText: string) => {
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch('http://localhost:8000/campaigns/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ prompt: promptText })
-      });
-      if (response.status === 401) {
-        setIsAuthenticated(false);
-        return;
-      }
-      if (response.ok) {
-        setAnalysisData(await response.json());
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -443,10 +460,7 @@ export default function App() {
                   className="w-full bg-white border border-indigo-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none h-32 text-sm text-slate-800 placeholder-slate-400"
                   placeholder='e.g. "I need tech reviewers for a new keyboard launch, budget is 5k"'
                   value={magicPrompt}
-                  onChange={(e) => {
-                     setMagicPrompt(e.target.value);
-                     if (analysisData?.is_complete) setAnalysisData(null);
-                  }}
+                  onChange={(e) => setMagicPrompt(e.target.value)}
                   required
                 />
 
@@ -482,7 +496,7 @@ export default function App() {
                                   <button
                                     key={sug}
                                     type="button"
-                                    onClick={() => handleSuggestionClick(sug)}
+                                    onClick={() => handleSuggestionClick(field, sug)}
                                     className="text-[11px] bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded-full transition-colors border border-indigo-200/50"
                                   >
                                     + {sug}

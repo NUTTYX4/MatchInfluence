@@ -15,6 +15,9 @@ from app.models.campaign import Campaign
 from sqlalchemy import select
 from app.models.influencer import Influencer
 from app.routers import auth
+from app.config import settings
+
+print(f"\n🚀🚨 CURRENT LLM URL LOADED: {settings.LLM_BASE_URL} 🚨🚀\n")
 # Initialize the API
 app = FastAPI(
     title="MatchInfluence API", 

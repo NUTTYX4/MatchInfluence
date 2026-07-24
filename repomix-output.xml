@@ -1,10 +1,10 @@
-This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
 
 <file_summary>
 This section contains a summary of this file.
 
 <purpose>
-This file contains a packed representation of the entire repository's contents.
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
 It is designed to be easily consumable by AI systems for analysis, code review,
 or other automated processes.
 </purpose>
@@ -32,6 +32,7 @@ The content is organized as follows:
 <notes>
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: **/__pycache__/**, **/.cache/**, **/.pytest_cache/**, **/.mypy_cache/**, **/.ruff_cache/**, **/.tox/**, **/cache/**, **/*.cache, **/*.pyc, **/*.pyo, **/*.log
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Files are sorted by Git change count (files with more changes are at the bottom)
@@ -3531,9 +3532,46 @@ passlib[bcrypt]
 PyJWT
 </file>
 
+<file path="app/config.py">
+import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    # Database Configuration
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/matchinfluence")
+    CHROMA_DB_PATH: str = "./chroma_data"
+    
+    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://models.github.ai/inference")
+    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o-mini")
+    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
+    
+    # External Scraper Proxy Keys
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    APIFY_TOKEN: str = os.getenv("APIFY_TOKEN", "")
+    APIFY_INSTAGRAM_URL: str = os.getenv("APIFY_INSTAGRAM_URL", "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items")
+    DATA_REFRESH_INTERVAL_DAYS: int = int(os.getenv("DATA_REFRESH_INTERVAL_DAYS", "7"))
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return init_settings, dotenv_settings, env_settings, file_secret_settings
+
+# Instantiate settings to be imported across the app
+settings = Settings()
+</file>
+
 <file path="app/schemas/campaign.py">
 from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
+from typing import Optional, List, Dict
 
 class CampaignRequest(BaseModel):
     niche: str = Field(default="General", description="e.g., productivity tech, space research")
@@ -3605,8 +3643,6 @@ class MatchRunRequest(BaseModel):
 class AnalyzeBriefRequest(BaseModel):
     prompt: str = Field(..., description="User's natural language input for campaign generation")
 
-from typing import Optional, List, Dict
-
 class AnalyzeBriefResponse(BaseModel):
     niche: Optional[str] = None
     audience: Optional[str] = None
@@ -3615,6 +3651,7 @@ class AnalyzeBriefResponse(BaseModel):
     missing_fields: List[str] = []
     suggestions: Dict[str, List[str]] = {}
     is_complete: bool = False
+    co_pilot_message: str = Field(default="I've got your brief. Let's start building your campaign.")
 
 class CampaignGenerateRequest(BaseModel):
     prompt: str = Field(..., description="User's natural language input for campaign generation")
@@ -3630,9 +3667,37 @@ class CampaignExtractedData(BaseModel):
 import httpx
 import logging
 import json
+import re
+import asyncio
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+def _extract_json_from_text(text: str) -> dict:
+    """
+    Robustly extracts a JSON object from text, even if wrapped in markdown blocks
+    like ```json ... ``` or if there is conversational preamble.
+    """
+    # 1. Strip whitespace
+    text = text.strip()
+    
+    # 2. Try to find json code block
+    match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+    if match:
+        text = match.group(1).strip()
+    else:
+        # Fallback: just try to find the first { and last }
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end >= start:
+            text = text[start:end+1]
+            
+    # 3. Parse and return
+    try:
+        return json.loads(text)
+    except Exception as e:
+        logger.error(f"Failed to parse JSON from LLM output. Raw: {text}. Error: {e}")
+        raise ValueError(f"Invalid JSON: {e}")
 
 async def analyze_brief_intent(user_prompt: str) -> dict:
     """
@@ -3643,22 +3708,25 @@ async def analyze_brief_intent(user_prompt: str) -> dict:
     model_name = getattr(settings, 'LLM_MODEL_NAME', 'gpt-4o-mini')
     base_url = getattr(settings, 'LLM_BASE_URL', 'https://models.github.ai/inference').rstrip('/')
 
+    fallback_response = {
+        "niche": None,
+        "audience": None,
+        "budget": None,
+        "target_reach": None,
+        "missing_fields": ["niche", "audience", "budget", "target_reach"],
+        "suggestions": {
+            "niche": ["Tech Reviews", "Fitness", "Gaming"],
+            "audience": ["Gen Z", "Corporate Professionals"],
+            "budget": ["5000", "10000"],
+            "target_reach": ["50000", "100000"]
+        },
+        "is_complete": False,
+        "co_pilot_message": "I'm having trouble analyzing your brief right now, but please fill out the manual fields to proceed."
+    }
+
     if not api_key:
         logger.warning("LLM_API_KEY is not set. Using fallback analysis.")
-        return {
-            "niche": None,
-            "audience": None,
-            "budget": None,
-            "target_reach": None,
-            "missing_fields": ["niche", "audience", "budget", "target_reach"],
-            "suggestions": {
-                "niche": ["Tech Reviews", "Fitness", "Gaming"],
-                "audience": ["Gen Z", "Corporate Professionals"],
-                "budget": ["5000", "10000"],
-                "target_reach": ["50000", "100000"]
-            },
-            "is_complete": False
-        }
+        return fallback_response
 
     url = f"{base_url}/chat/completions"
     
@@ -3668,13 +3736,15 @@ async def analyze_brief_intent(user_prompt: str) -> dict:
     }
 
     system_prompt = (
-        "You are an expert campaign configuration assistant. "
-        "Analyze the user's brief and extract values for niche (string), audience (string), budget (number), and target_reach (integer). "
-        "If budget or target_reach are described in text (e.g. 'ten grand'), convert them to numeric values. "
-        "If any of these 4 fields are missing or unclear, include their names in the 'missing_fields' array and set their value to null. "
-        "For each missing field, provide 2-3 highly relevant, context-aware suggestions in a 'suggestions' object mapping field name to a list of suggested strings. "
-        "Also include an 'is_complete' boolean flag that is true ONLY if all 4 fields are extracted successfully without being missing. "
-        "Return ONLY a JSON object exactly matching this structure: {\"niche\": \"...\" or null, \"audience\": \"...\" or null, \"budget\": 1000 or null, \"target_reach\": 5000 or null, \"missing_fields\": [], \"suggestions\": {}, \"is_complete\": true/false}."
+        "You are an expert marketing co-pilot assistant. "
+        "Your goal is to parse the user's campaign brief and extract: "
+        "niche (string), audience (string), budget (numeric float), and target_reach (numeric integer). "
+        "If budget or target_reach are text (e.g., 'ten grand'), convert to numbers (e.g., 10000). "
+        "If any of these 4 fields are missing, add their names to 'missing_fields' and set their values to null. "
+        "For each missing field, provide 2-3 highly relevant suggestions in 'suggestions'. "
+        "Set 'is_complete' to true ONLY if all 4 fields are extracted. "
+        "Critically: Generate a 'co_pilot_message' string dynamically. If fields are missing, act like a friendly chatbot asking for them (e.g., 'I see you want to target gamers. What is your budget?'). If complete, say something like 'Great! I have all the details. Let's find your influencers!'. "
+        "Return ONLY a raw JSON object (do NOT wrap it in markdown block quotes). It MUST match this structure: {\"niche\": \"...\", \"audience\": \"...\", \"budget\": 1000.0, \"target_reach\": 5000, \"missing_fields\": [], \"suggestions\": {}, \"is_complete\": true/false, \"co_pilot_message\": \"...\"}."
     )
 
     payload = {
@@ -3695,32 +3765,44 @@ async def analyze_brief_intent(user_prompt: str) -> dict:
             
             result = response.json()
             if "choices" in result and len(result["choices"]) > 0:
-                content = result["choices"][0]["message"]["content"].strip()
-                extracted_data = json.loads(content)
+                content = result["choices"][0]["message"]["content"]
+                
+                extracted_data = _extract_json_from_text(content)
+                
+                # Strict type coercion
+                niche = str(extracted_data["niche"]) if extracted_data.get("niche") is not None else None
+                audience = str(extracted_data["audience"]) if extracted_data.get("audience") is not None else None
+                
+                budget = None
+                if extracted_data.get("budget") is not None:
+                    try:
+                        budget = float(extracted_data["budget"])
+                    except (ValueError, TypeError):
+                        pass
+
+                target_reach = None
+                if extracted_data.get("target_reach") is not None:
+                    try:
+                        target_reach = int(float(extracted_data["target_reach"]))
+                    except (ValueError, TypeError):
+                        pass
                 
                 return {
-                    "niche": extracted_data.get("niche"),
-                    "audience": extracted_data.get("audience"),
-                    "budget": extracted_data.get("budget"),
-                    "target_reach": extracted_data.get("target_reach"),
-                    "missing_fields": extracted_data.get("missing_fields", []),
-                    "suggestions": extracted_data.get("suggestions", {}),
-                    "is_complete": extracted_data.get("is_complete", False)
+                    "niche": niche,
+                    "audience": audience,
+                    "budget": budget,
+                    "target_reach": target_reach,
+                    "missing_fields": list(extracted_data.get("missing_fields", [])),
+                    "suggestions": dict(extracted_data.get("suggestions", {})),
+                    "is_complete": bool(extracted_data.get("is_complete", False)),
+                    "co_pilot_message": str(extracted_data.get("co_pilot_message", "I've processed your brief!"))
                 }
             else:
                 logger.error(f"Unexpected API response format: {result}")
     except Exception as e:
         logger.error(f"LLM API error during brief analysis: {e}")
         
-    return {
-        "niche": None,
-        "audience": None,
-        "budget": None,
-        "target_reach": None,
-        "missing_fields": ["niche", "audience", "budget", "target_reach"],
-        "suggestions": {},
-        "is_complete": False
-    }
+    return fallback_response
 
 async def extract_campaign_parameters(user_prompt: str) -> dict:
     """
@@ -3751,7 +3833,7 @@ async def extract_campaign_parameters(user_prompt: str) -> dict:
         "You are an expert campaign configuration assistant. "
         "Extract the following parameters from the user's input: "
         "niche (string), audience (string), budget (number), target_reach (integer). "
-        "Return ONLY a JSON object with these 4 keys. "
+        "Return ONLY a raw JSON object with these 4 keys. "
         "If budget is not mentioned, use 1000.0. "
         "If target_reach is not mentioned, use 10000. "
         "If niche or audience are not clear, deduce a reasonable default based on the text."
@@ -3775,15 +3857,25 @@ async def extract_campaign_parameters(user_prompt: str) -> dict:
             
             result = response.json()
             if "choices" in result and len(result["choices"]) > 0:
-                content = result["choices"][0]["message"]["content"].strip()
-                extracted_data = json.loads(content)
+                content = result["choices"][0]["message"]["content"]
+                extracted_data = _extract_json_from_text(content)
                 
                 # Ensure types and defaults
+                try:
+                    budget = float(extracted_data.get("budget", 1000.0))
+                except (ValueError, TypeError):
+                    budget = 1000.0
+                    
+                try:
+                    target_reach = int(float(extracted_data.get("target_reach", 10000)))
+                except (ValueError, TypeError):
+                    target_reach = 10000
+                    
                 return {
                     "niche": str(extracted_data.get("niche", "General")),
                     "audience": str(extracted_data.get("audience", "General Audience")),
-                    "budget": float(extracted_data.get("budget", 1000.0)),
-                    "target_reach": int(extracted_data.get("target_reach", 10000))
+                    "budget": budget,
+                    "target_reach": target_reach
                 }
             else:
                 logger.error(f"Unexpected API response format: {result}")
@@ -3837,11 +3929,8 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
     }
 
     timeout = httpx.Timeout(15.0, connect=5.0)
-
     max_retries = 3
     base_backoff = 2
-
-    import asyncio
 
     for attempt in range(max_retries):
         try:
@@ -3863,13 +3952,10 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
                 if retry_after and retry_after.isdigit():
                     delay = int(retry_after)
                     
-                    # 🚀 THE FIX: The Circuit Breaker 
-                    # If the API demands we wait longer than 15 seconds, abandon the explanation.
                     if delay > 15:
                         logger.warning(f"Rate limit timeout too long ({delay}s). Skipping AI explanation.")
                         return "AI explanation skipped: API rate limit exceeded."
                 else:
-                    # Exponential backoff: 2s, 4s, 8s
                     delay = base_backoff * (2 ** attempt)
                 
                 logger.warning(f"LLM Provider rate limit hit (429). Retrying in {delay}s (Attempt {attempt + 1}/{max_retries})...")
@@ -3885,30 +3971,175 @@ async def generate_explanation(campaign_context: str, influencer_data: dict, fit
     return "AI explanation unavailable: Max retries exceeded."
 </file>
 
-<file path="app/config.py">
-import os
+<file path="app/services/matching.py">
+import uuid
+import logging
+import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+# Import models and infrastructure
+from app.models.influencer import Influencer
+from app.models.campaign import Campaign, MatchResult
+from app.database import chroma_collection
 
-class Settings(BaseSettings):
-    # Database Configuration
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
-    CHROMA_DB_PATH: str = "./chroma_data"
+# Import logic services
+from app.services.scoring import ScoringEngine
+from app.services.ai import AIEngine
+from app.services.llm import generate_explanation
+
+logger = logging.getLogger(__name__)
+
+class MatchingOrchestrator:
     
-    # API Keys (To be used in later phases)
-    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://models.github.ai/inference")
-    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
-    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o-mini")
-    # External Scraper Proxy Keys
-    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
-    APIFY_TOKEN: str = os.getenv("APIFY_TOKEN", "")
-    APIFY_INSTAGRAM_URL: str = os.getenv("APIFY_INSTAGRAM_URL", "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items")
-    DATA_REFRESH_INTERVAL_DAYS: int = int(os.getenv("DATA_REFRESH_INTERVAL_DAYS", "7"))
+    @staticmethod
+    async def find_best_matches(db: AsyncSession, request, current_user_id: str):
+        try:
+            # 1. FETCH EXACT CAMPAIGN
+            query = select(Campaign).where(Campaign.id == request.campaign_id).where(Campaign.owner_id == current_user_id)
+            result = await db.execute(query)
+            db_campaign = result.scalar_one_or_none()
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+            if not db_campaign:
+                raise ValueError(f"Campaign {request.campaign_id} not found or does not belong to the user.")
 
-# Instantiate settings to be imported across the app
-settings = Settings()
+            brief_text = db_campaign.brief_text 
+
+            # 3. AI VECTOR EMBEDDING
+            query_vector = await AIEngine.get_embedding(brief_text)
+            
+            # 4. Vector Search via ChromaDB
+            chroma_results = chroma_collection.query(
+                query_embeddings=[query_vector],
+                n_results=request.num_results
+            )
+            
+            if not chroma_results['ids'] or not chroma_results['ids'][0]:
+                return []
+
+            matched_ids = chroma_results['ids'][0]
+            semantic_distances = chroma_results['distances'][0]
+            
+            # FIX: Convert ChromaDB string IDs back to UUIDs for PostgreSQL
+            matched_uuids = [uuid.UUID(id_str) for id_str in matched_ids]
+            
+            # 5. HYDRATE: Fetch exact rows from PostgreSQL using the UUIDs
+            query = select(Influencer).where(Influencer.id.in_(matched_uuids))
+            db_results = await db.execute(query)
+            
+            # We map by ID to easily find them below
+            influencers_dict = {str(inf.id): inf for inf in db_results.scalars().all()}
+            
+            candidate_prep = []
+            llm_tasks = []
+            
+            # 6. SCORE PREPARATION (No blocking awaits here)
+            for i, match_id in enumerate(matched_ids):
+                inf = influencers_dict.get(match_id)
+                if not inf:
+                    continue
+                    
+                distance = semantic_distances[i]
+                semantic_score = max(0.0, 1.0 - (distance / 2.0))
+                
+                metrics = ScoringEngine.calculate_metrics(
+                    inf.follower_count, inf.following_count, inf.total_likes, inf.total_comments
+                )
+                
+                auth_score = ScoringEngine.calculate_authenticity(
+                    metrics['er'], metrics['clr'], metrics['ffr'], inf.platform
+                )
+                fit_score = ScoringEngine.calculate_composite_fit(semantic_score, auth_score)
+                
+                expected_engagements = max(inf.follower_count * (metrics['er'] / 100), 1)
+                cpe = (inf.price_per_post / expected_engagements) if inf.price_per_post else 0.0
+                
+                # Store the math results
+                candidate_prep.append({
+                    "inf_id": str(inf.id),
+                    "inf": inf,
+                    "metrics": metrics,
+                    "scores": {
+                        "semantic_match": round(semantic_score, 3),
+                        "authenticity": auth_score,
+                        "composite_fit": fit_score
+                    },
+                    "cpe": cpe
+                })
+
+                # Queue the async task (Do NOT await it here)
+                llm_tasks.append(
+                    generate_explanation(
+                        campaign_context=brief_text,
+                        influencer_data={
+                            "username": inf.username,
+                            "platform": inf.platform,
+                            "bio": inf.bio,
+                            "niche_tags": inf.niche_tags
+                        },
+                        fit_score=fit_score
+                    )
+                )
+            
+            # FIX: Fire OpenRouter API calls sequentially to avoid HTTP 429 Rate Limits from free tiers
+            explanations = []
+            for task in llm_tasks:
+                try:
+                    result = await task
+                    explanations.append(result)
+                    await asyncio.sleep(1) # 1-second delay between calls to respect rate limits
+                except Exception as e:
+                    logger.error(f"LLM task failed during sequential execution: {e}")
+                    explanations.append(f"AI explanation temporarily unavailable. Error: {str(e)}")
+
+            final_candidates = []
+            
+            # 7. ASSEMBLE & RANK
+            for idx, candidate in enumerate(candidate_prep):
+                final_candidates.append({
+                    "influencer_id": candidate["inf_id"],
+                    "influencer": {
+                        "username": candidate["inf"].username,
+                        "platform": candidate["inf"].platform,
+                        "followers": candidate["inf"].follower_count,
+                        "price": candidate["inf"].price_per_post
+                    },
+                    "metrics": candidate["metrics"],
+                    "scores": candidate["scores"],
+                    "financials": {
+                        "cpe": round(candidate["cpe"], 4)
+                    },
+                    "explanation": explanations[idx]
+                })
+
+            final_candidates.sort(key=lambda x: x["scores"]["composite_fit"], reverse=True)
+            
+            # 8. PERSIST
+            for rank_index, candidate in enumerate(final_candidates):
+                db_match = MatchResult(
+                    campaign_id=db_campaign.id,
+                    influencer_id=uuid.UUID(candidate["influencer_id"]),
+                    semantic_score=candidate["scores"]["semantic_match"],
+                    authenticity_score=candidate["scores"]["authenticity"],
+                    composite_score=candidate["scores"]["composite_fit"],
+                    cpe=candidate["financials"]["cpe"],
+                    explanation=candidate["explanation"],
+                    rank=rank_index + 1
+                )
+                db.add(db_match)
+                
+                # Remove UUID before sending to frontend
+                del candidate["influencer_id"]
+
+            # 9. COMMIT
+            await db.commit()
+            
+            return final_candidates
+            
+        except Exception as e:
+            logger.error(f"Matching pipeline error: {str(e)}")
+            await db.rollback()
+            raise e
 </file>
 
 <file path="frontend-ui/src/App.tsx">
@@ -3968,6 +4199,81 @@ export default function App() {
   const [magicLoading, setMagicLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleAnalyzeBrief = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!magicPrompt.trim()) return;
+
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('http://localhost:8000/campaigns/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: magicPrompt })
+      });
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      if (!response.ok) throw new Error("Failed to analyze brief");
+      
+      const data = await response.json();
+      setAnalysisData(data);
+    } catch (err) {
+      console.error("Analysis failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSuggestionClick = (field: string, suggestion: string) => {
+    let sentence = "";
+    switch (field) {
+      case 'niche':
+        sentence = `We are focusing on the ${suggestion} niche.`;
+        break;
+      case 'audience':
+        sentence = `Our target audience is ${suggestion}.`;
+        break;
+      case 'budget':
+        sentence = `We have a budget of $${suggestion}.`;
+        break;
+      case 'target_reach':
+        sentence = `We are aiming for a target reach of ${suggestion} people.`;
+        break;
+      default:
+        sentence = suggestion;
+    }
+    const newPrompt = magicPrompt.trim() + (magicPrompt.trim() ? " " : "") + sentence;
+    setMagicPrompt(newPrompt);
+    
+    // Automatically re-analyze with the appended context
+    handleReAnalyze(newPrompt);
+  };
+  
+  const handleReAnalyze = async (promptText: string) => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('http://localhost:8000/campaigns/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: promptText })
+      });
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      if (response.ok) {
+        setAnalysisData(await response.json());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // Create Campaign State
   const [newCampaignNiche, setNewCampaignNiche] = useState('');
@@ -4125,64 +4431,6 @@ export default function App() {
       console.error("Match failed:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAnalyzeBrief = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!magicPrompt.trim()) return;
-
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch('http://localhost:8000/campaigns/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ prompt: magicPrompt })
-      });
-      if (response.status === 401) {
-        setIsAuthenticated(false);
-        return;
-      }
-      if (!response.ok) throw new Error("Failed to analyze brief");
-      
-      const data = await response.json();
-      setAnalysisData(data);
-    } catch (err) {
-      console.error("Analysis failed:", err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    const newPrompt = magicPrompt.trim() + " " + suggestion;
-    setMagicPrompt(newPrompt);
-    
-    // Automatically re-analyze with the appended context
-    handleReAnalyze(newPrompt);
-  };
-  
-  const handleReAnalyze = async (promptText: string) => {
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch('http://localhost:8000/campaigns/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ prompt: promptText })
-      });
-      if (response.status === 401) {
-        setIsAuthenticated(false);
-        return;
-      }
-      if (response.ok) {
-        setAnalysisData(await response.json());
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -4357,10 +4605,7 @@ export default function App() {
                   className="w-full bg-white border border-indigo-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none h-32 text-sm text-slate-800 placeholder-slate-400"
                   placeholder='e.g. "I need tech reviewers for a new keyboard launch, budget is 5k"'
                   value={magicPrompt}
-                  onChange={(e) => {
-                     setMagicPrompt(e.target.value);
-                     if (analysisData?.is_complete) setAnalysisData(null);
-                  }}
+                  onChange={(e) => setMagicPrompt(e.target.value)}
                   required
                 />
 
@@ -4396,7 +4641,7 @@ export default function App() {
                                   <button
                                     key={sug}
                                     type="button"
-                                    onClick={() => handleSuggestionClick(sug)}
+                                    onClick={() => handleSuggestionClick(field, sug)}
                                     className="text-[11px] bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded-full transition-colors border border-indigo-200/50"
                                   >
                                     + {sug}
@@ -4653,175 +4898,25 @@ export default function App() {
 }
 </file>
 
-<file path="app/services/matching.py">
-import uuid
-import logging
-import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+<file path=".env.example">
+# Database Configuration
+DATABASE_URL=your_actual_database_url_here
+CHROMA_DB_PATH=./chroma_data
+DATA_REFRESH_INTERVAL_DAYS=7
 
-# Import models and infrastructure
-from app.models.influencer import Influencer
-from app.models.campaign import Campaign, MatchResult
-from app.database import chroma_collection
+# GitHub Models AI Configuration (Handles Matching Rationale & Data Sanitization)
+LLM_BASE_URL=https://models.github.ai/inference
+LLM_API_KEY=your_actual_github_pat_here
+LLM_MODEL_NAME=gpt-4o-mini
 
-# Import logic services
-from app.services.scoring import ScoringEngine
-from app.services.ai import AIEngine
-from app.services.llm import generate_explanation
+# Google AI Studio Ingestion Crawler Engine (Lightning Fast & Free)
+GEMINI_API_KEY=your_actual_gemini_api_key_here
+GEMINI_MODEL=gemini-3.1-flash-lite
 
-logger = logging.getLogger(__name__)
-
-class MatchingOrchestrator:
-    
-    @staticmethod
-    async def find_best_matches(db: AsyncSession, request, current_user_id: str):
-        try:
-            # 1. FETCH EXACT CAMPAIGN
-            query = select(Campaign).where(Campaign.id == request.campaign_id).where(Campaign.owner_id == current_user_id)
-            result = await db.execute(query)
-            db_campaign = result.scalar_one_or_none()
-
-            if not db_campaign:
-                raise ValueError(f"Campaign {request.campaign_id} not found or does not belong to the user.")
-
-            brief_text = db_campaign.brief_text 
-
-            # 3. AI VECTOR EMBEDDING
-            query_vector = await AIEngine.get_embedding(brief_text)
-            
-            # 4. Vector Search via ChromaDB
-            chroma_results = chroma_collection.query(
-                query_embeddings=[query_vector],
-                n_results=request.num_results
-            )
-            
-            if not chroma_results['ids'] or not chroma_results['ids'][0]:
-                return []
-
-            matched_ids = chroma_results['ids'][0]
-            semantic_distances = chroma_results['distances'][0]
-            
-            # FIX: Convert ChromaDB string IDs back to UUIDs for PostgreSQL
-            matched_uuids = [uuid.UUID(id_str) for id_str in matched_ids]
-            
-            # 5. HYDRATE: Fetch exact rows from PostgreSQL using the UUIDs
-            query = select(Influencer).where(Influencer.id.in_(matched_uuids))
-            db_results = await db.execute(query)
-            
-            # We map by ID to easily find them below
-            influencers_dict = {str(inf.id): inf for inf in db_results.scalars().all()}
-            
-            candidate_prep = []
-            llm_tasks = []
-            
-            # 6. SCORE PREPARATION (No blocking awaits here)
-            for i, match_id in enumerate(matched_ids):
-                inf = influencers_dict.get(match_id)
-                if not inf:
-                    continue
-                    
-                distance = semantic_distances[i]
-                semantic_score = max(0.0, 1.0 - (distance / 2.0))
-                
-                metrics = ScoringEngine.calculate_metrics(
-                    inf.follower_count, inf.following_count, inf.total_likes, inf.total_comments
-                )
-                
-                auth_score = ScoringEngine.calculate_authenticity(
-                    metrics['er'], metrics['clr'], metrics['ffr'], inf.platform
-                )
-                fit_score = ScoringEngine.calculate_composite_fit(semantic_score, auth_score)
-                
-                expected_engagements = max(inf.follower_count * (metrics['er'] / 100), 1)
-                cpe = (inf.price_per_post / expected_engagements) if inf.price_per_post else 0.0
-                
-                # Store the math results
-                candidate_prep.append({
-                    "inf_id": str(inf.id),
-                    "inf": inf,
-                    "metrics": metrics,
-                    "scores": {
-                        "semantic_match": round(semantic_score, 3),
-                        "authenticity": auth_score,
-                        "composite_fit": fit_score
-                    },
-                    "cpe": cpe
-                })
-
-                # Queue the async task (Do NOT await it here)
-                llm_tasks.append(
-                    generate_explanation(
-                        campaign_context=brief_text,
-                        influencer_data={
-                            "username": inf.username,
-                            "platform": inf.platform,
-                            "bio": inf.bio,
-                            "niche_tags": inf.niche_tags
-                        },
-                        fit_score=fit_score
-                    )
-                )
-            
-            # FIX: Fire OpenRouter API calls sequentially to avoid HTTP 429 Rate Limits from free tiers
-            explanations = []
-            for task in llm_tasks:
-                try:
-                    result = await task
-                    explanations.append(result)
-                    await asyncio.sleep(1) # 1-second delay between calls to respect rate limits
-                except Exception as e:
-                    logger.error(f"LLM task failed during sequential execution: {e}")
-                    explanations.append(f"AI explanation temporarily unavailable. Error: {str(e)}")
-
-            final_candidates = []
-            
-            # 7. ASSEMBLE & RANK
-            for idx, candidate in enumerate(candidate_prep):
-                final_candidates.append({
-                    "influencer_id": candidate["inf_id"],
-                    "influencer": {
-                        "username": candidate["inf"].username,
-                        "platform": candidate["inf"].platform,
-                        "followers": candidate["inf"].follower_count,
-                        "price": candidate["inf"].price_per_post
-                    },
-                    "metrics": candidate["metrics"],
-                    "scores": candidate["scores"],
-                    "financials": {
-                        "cpe": round(candidate["cpe"], 4)
-                    },
-                    "explanation": explanations[idx]
-                })
-
-            final_candidates.sort(key=lambda x: x["scores"]["composite_fit"], reverse=True)
-            
-            # 8. PERSIST
-            for rank_index, candidate in enumerate(final_candidates):
-                db_match = MatchResult(
-                    campaign_id=db_campaign.id,
-                    influencer_id=uuid.UUID(candidate["influencer_id"]),
-                    semantic_score=candidate["scores"]["semantic_match"],
-                    authenticity_score=candidate["scores"]["authenticity"],
-                    composite_score=candidate["scores"]["composite_fit"],
-                    cpe=candidate["financials"]["cpe"],
-                    explanation=candidate["explanation"],
-                    rank=rank_index + 1
-                )
-                db.add(db_match)
-                
-                # Remove UUID before sending to frontend
-                del candidate["influencer_id"]
-
-            # 9. COMMIT
-            await db.commit()
-            
-            return final_candidates
-            
-        except Exception as e:
-            logger.error(f"Matching pipeline error: {str(e)}")
-            await db.rollback()
-            raise e
+# External Scraper Proxy Keys
+YOUTUBE_API_KEY=your_actual_youtube_api_key_here
+APIFY_TOKEN=your_actual_apify_token_here
+APIFY_INSTAGRAM_URL=your_actual_apify_instagram_url_here
 </file>
 
 <file path="app/main.py">
@@ -4842,6 +4937,9 @@ from app.models.campaign import Campaign
 from sqlalchemy import select
 from app.models.influencer import Influencer
 from app.routers import auth
+from app.config import settings
+
+print(f"\n🚀🚨 CURRENT LLM URL LOADED: {settings.LLM_BASE_URL} 🚨🚀\n")
 # Initialize the API
 app = FastAPI(
     title="MatchInfluence API", 
