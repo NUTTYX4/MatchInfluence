@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
+from typing import Optional, List, Dict
 
 class CampaignRequest(BaseModel):
     niche: str = Field(default="General", description="e.g., productivity tech, space research")
@@ -71,8 +72,6 @@ class MatchRunRequest(BaseModel):
 class AnalyzeBriefRequest(BaseModel):
     prompt: str = Field(..., description="User's natural language input for campaign generation")
 
-from typing import Optional, List, Dict
-
 class AnalyzeBriefResponse(BaseModel):
     niche: Optional[str] = None
     audience: Optional[str] = None
@@ -81,6 +80,7 @@ class AnalyzeBriefResponse(BaseModel):
     missing_fields: List[str] = []
     suggestions: Dict[str, List[str]] = {}
     is_complete: bool = False
+    co_pilot_message: str = Field(default="I've got your brief. Let's start building your campaign.")
 
 class CampaignGenerateRequest(BaseModel):
     prompt: str = Field(..., description="User's natural language input for campaign generation")
