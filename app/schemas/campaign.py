@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
+from typing import Optional, List, Dict
 
 class CampaignRequest(BaseModel):
     niche: str = Field(default="General", description="e.g., productivity tech, space research")
@@ -67,3 +68,25 @@ class MatchRunRequest(BaseModel):
     """Clean payload for running the AI engine against an existing campaign."""
     campaign_id: UUID
     num_results: int = Field(default=5, ge=1, le=50)
+
+class AnalyzeBriefRequest(BaseModel):
+    prompt: str = Field(..., description="User's natural language input for campaign generation")
+
+class AnalyzeBriefResponse(BaseModel):
+    niche: Optional[str] = None
+    audience: Optional[str] = None
+    budget: Optional[float] = None
+    target_reach: Optional[int] = None
+    missing_fields: List[str] = []
+    suggestions: Dict[str, List[str]] = {}
+    is_complete: bool = False
+    co_pilot_message: str = Field(default="I've got your brief. Let's start building your campaign.")
+
+class CampaignGenerateRequest(BaseModel):
+    prompt: str = Field(..., description="User's natural language input for campaign generation")
+
+class CampaignExtractedData(BaseModel):
+    niche: str
+    audience: str
+    budget: float
+    target_reach: int

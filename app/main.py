@@ -3,16 +3,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
 # Import our infrastructure and logic
 from app.database import get_db
-from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse
+from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse, CampaignGenerateRequest, AnalyzeBriefRequest, AnalyzeBriefResponse
 from app.services.matching import MatchingOrchestrator
+from app.services.llm import extract_campaign_parameters, analyze_brief_intent
 from app.config import settings
 from app.db_bootstrap import ensure_database_exists
 
+from app.core.security import get_current_user
 from sqlalchemy.future import select
 from app.models.campaign import Campaign
 from sqlalchemy import select
 from app.models.influencer import Influencer
+from app.routers import auth
+from app.config import settings
 
+print(f"\n🚀🚨 CURRENT LLM URL LOADED: {settings.LLM_BASE_URL} 🚨🚀\n")
 # Initialize the API
 app = FastAPI(
     title="MatchInfluence API", 
@@ -20,9 +25,11 @@ app = FastAPI(
     version="3.0"
 )
 
+app.include_router(auth.router)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"], 
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,7 +44,8 @@ async def health_check():
 @app.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
 async def create_campaign(
     campaign_in: CampaignCreate, 
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
 ):
     """
     Create a new campaign and store it in PostgreSQL.
@@ -45,6 +53,7 @@ async def create_campaign(
     """
     try:
         new_campaign = Campaign(
+            owner_id=current_user_id,
             niche=campaign_in.niche,
             audience=campaign_in.audience,
             budget=campaign_in.budget,
@@ -65,10 +74,67 @@ async def create_campaign(
             detail=f"Failed to create campaign: {str(e)}"
         )
 
+@app.post("/campaigns/analyze", response_model=AnalyzeBriefResponse, status_code=status.HTTP_200_OK)
+async def analyze_campaign_brief(
+    request: AnalyzeBriefRequest,
+    current_user_id: str = Depends(get_current_user)
+):
+    """
+    Analyzes a brief and returns missing parameters and suggestions.
+    Does not save to database.
+    """
+    try:
+        extracted = await analyze_brief_intent(request.prompt)
+        return extracted
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze brief: {str(e)}"
+        )
+
+@app.post("/campaigns/generate", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
+async def generate_campaign(
+    request: CampaignGenerateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
+):
+    """
+    Takes a natural language prompt, uses an LLM to extract campaign parameters,
+    creates the campaign in the database, and returns it.
+    """
+    try:
+        # 1. Extract parameters using LLM
+        extracted = await extract_campaign_parameters(request.prompt)
+        
+        # 2. Create database record
+        new_campaign = Campaign(
+            owner_id=current_user_id,
+            niche=extracted["niche"],
+            audience=extracted["audience"],
+            budget=extracted["budget"],
+            target_reach=extracted["target_reach"],
+            brief_text=request.prompt,
+        )
+        
+        db.add(new_campaign)
+        await db.commit()
+        await db.refresh(new_campaign)
+        
+        return new_campaign
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate campaign: {str(e)}"
+        )
+
 @app.get("/campaigns")
-async def list_campaigns(db: AsyncSession = Depends(get_db)):
+async def list_campaigns(
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
+):
     """Temporary endpoint to fetch all live campaign IDs."""
-    result = await db.execute(select(Campaign))
+    result = await db.execute(select(Campaign).where(Campaign.owner_id == current_user_id))
     campaigns = result.scalars().all()
     return [{"id": str(c.id), "niche": c.niche, "budget": c.budget} for c in campaigns]
 
@@ -102,13 +168,17 @@ async def get_influencers(db: AsyncSession = Depends(get_db)):
     return influencers
 
 @app.post("/match")
-async def match_influencers(request: MatchRunRequest, db: AsyncSession = Depends(get_db)):
+async def match_influencers(
+    request: MatchRunRequest, 
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
+):
     """
     The core matching endpoint. Takes a campaign ID, fetches real details,
     queries ChromaDB, and scores them using PostgreSQL metrics.
     """
     try:
-        results = await MatchingOrchestrator.find_best_matches(db, request)
+        results = await MatchingOrchestrator.find_best_matches(db, request, current_user_id)
         
         return {
             "campaign_id": str(request.campaign_id),

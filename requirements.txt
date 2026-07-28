@@ -7,3 +7,5 @@ chromadb
 sentence-transformers
 httpx
 pydantic-settings
+passlib[bcrypt]
+PyJWT

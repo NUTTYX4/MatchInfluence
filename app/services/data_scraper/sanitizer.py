@@ -75,3 +75,6 @@ async def sanitize_profile_data(raw_bio: str, raw_tags: List[str]) -> Dict[str, 
                     # Fallback to returning the raw data so the database ingestion doesn't crash
                     return {"clean_bio": raw_bio, "extracted_niche_tags": raw_tags[:5]}
                 await asyncio.sleep(1) # Brief pause before next retry on general network errors
+
+        # 🚀 THE SAFETY NET: If the loop exhausts (e.g., 3 consecutive 429s), return raw data
+        return {"clean_bio": raw_bio, "extracted_niche_tags": raw_tags[:5]}

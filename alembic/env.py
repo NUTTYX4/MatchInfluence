@@ -12,6 +12,7 @@ from app.config import settings
 from app.db_bootstrap import ensure_database_exists
 from app.models.influencer import Base
 import app.models.campaign 
+import app.models.user
 
 config = context.config
 

@@ -19,15 +19,15 @@ logger = logging.getLogger(__name__)
 class MatchingOrchestrator:
     
     @staticmethod
-    async def find_best_matches(db: AsyncSession, request):
+    async def find_best_matches(db: AsyncSession, request, current_user_id: str):
         try:
             # 1. FETCH EXACT CAMPAIGN
-            query = select(Campaign).where(Campaign.id == request.campaign_id)
+            query = select(Campaign).where(Campaign.id == request.campaign_id).where(Campaign.owner_id == current_user_id)
             result = await db.execute(query)
             db_campaign = result.scalar_one_or_none()
 
             if not db_campaign:
-                raise ValueError(f"Campaign {request.campaign_id} not found in database.")
+                raise ValueError(f"Campaign {request.campaign_id} not found or does not belong to the user.")
 
             brief_text = db_campaign.brief_text 
 
