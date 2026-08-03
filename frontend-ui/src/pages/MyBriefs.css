@@ -1,0 +1,134 @@
+/* My Briefs Styles - Oatmeal Lavender Theme */
+.my-briefs-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.briefs-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.brief-tabs {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.brief-search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.briefs-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.brief-full-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-xl);
+  background: #ffffff;
+  transition: all var(--transition-normal);
+  gap: var(--space-xl);
+}
+
+.brief-full-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.brief-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  flex: 1;
+}
+
+.brief-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.brief-main-title {
+  color: var(--color-tertiary);
+}
+
+.brief-tags-row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.brief-card-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  flex-shrink: 0;
+}
+
+.brief-stat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.stat-value-sm {
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+.brief-card-buttons {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-3xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mt-4 {
+  margin-top: var(--space-md);
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+  .brief-full-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .brief-card-right {
+    width: 100%;
+    justify-content: space-between;
+    border-top: 1px solid var(--color-surface-container-high);
+    padding-top: var(--space-md);
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .brief-stat-block {
+    align-items: flex-start;
+  }
+}

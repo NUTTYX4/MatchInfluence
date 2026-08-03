@@ -1,23 +1,33 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
-# Import our infrastructure and logic
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from pydantic import BaseModel
+
+# Infrastructure and Models
 from app.database import get_db
-from app.schemas.campaign import CampaignRequest, MatchRunRequest, CampaignCreate, CampaignResponse, CampaignGenerateRequest, AnalyzeBriefRequest, AnalyzeBriefResponse
-from app.services.matching import MatchingOrchestrator
-from app.services.llm import extract_campaign_parameters, analyze_brief_intent
 from app.config import settings
 from app.db_bootstrap import ensure_database_exists
-
 from app.core.security import get_current_user
-from sqlalchemy.future import select
-from app.models.campaign import Campaign
-from sqlalchemy import select
+from app.models.campaign import Campaign, MatchResult  # Fixed: Imported MatchResult
 from app.models.influencer import Influencer
 from app.routers import auth
-from app.config import settings
 
-print(f"\n🚀🚨 CURRENT LLM URL LOADED: {settings.LLM_BASE_URL} 🚨🚀\n")
+# Schemas and Services
+from app.schemas.campaign import (
+    CampaignRequest, 
+    MatchRunRequest, 
+    CampaignCreate, 
+    CampaignResponse, 
+    CampaignGenerateRequest, 
+    AnalyzeBriefRequest, 
+    AnalyzeBriefResponse
+)
+from app.services.matching import MatchingOrchestrator
+from app.services.llm import extract_campaign_parameters, analyze_brief_intent
+from app.services.data_scraper.scraper import IngestionScraperEngine
+
 # Initialize the API
 app = FastAPI(
     title="MatchInfluence API", 
@@ -133,13 +143,11 @@ async def list_campaigns(
     db: AsyncSession = Depends(get_db),
     current_user_id: str = Depends(get_current_user)
 ):
-    """Temporary endpoint to fetch all live campaign IDs."""
+    """Fetch all live campaign IDs for current user."""
     result = await db.execute(select(Campaign).where(Campaign.owner_id == current_user_id))
     campaigns = result.scalars().all()
     return [{"id": str(c.id), "niche": c.niche, "budget": c.budget} for c in campaigns]
 
-from pydantic import BaseModel
-from app.services.data_scraper.scraper import IngestionScraperEngine
 
 class IngestRequest(BaseModel):
     target_id: str
@@ -187,3 +195,85 @@ async def match_influencers(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/campaigns/{campaign_id}/analytics")
+async def get_campaign_analytics(
+    campaign_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user)
+):
+    """
+    Analytics & Workspace Tracking Memory aggregation endpoint.
+    Returns pre-shaped payloads for charts and historical tracking.
+    """
+    # Security & Ownership Check
+    result = await db.execute(
+        select(Campaign).where(Campaign.id == campaign_id, Campaign.owner_id == current_user_id)
+    )
+    campaign = result.scalar_one_or_none()
+    
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+        
+    # Query & Join Optimization
+    result = await db.execute(
+        select(MatchResult)
+        .where(MatchResult.campaign_id == campaign_id)
+        .options(selectinload(MatchResult.influencer))
+        .order_by(MatchResult.created_at.desc())
+    )
+    match_results = result.scalars().all()
+    
+    # Aggregate & Shape Output Payload
+    fit_authenticity_map = []
+    cpe_ranking_temp = []
+    history_logs = []
+    
+    for mr in match_results:
+        influencer = mr.influencer
+        if not influencer:
+            continue
+            
+        fit_authenticity_map.append({
+            "username": influencer.username,
+            "platform": influencer.platform,
+            "x_authenticity": mr.authenticity_score,
+            "y_composite_fit": mr.composite_score,
+            "z_reach": influencer.follower_count
+        })
+        
+        cpe_ranking_temp.append({
+            "username": influencer.username,
+            "platform": influencer.platform,
+            "cpe": mr.cpe,
+            "followers": influencer.follower_count
+        })
+        
+        history_logs.append({
+            "match_id": str(mr.id),
+            "username": influencer.username,
+            "platform": influencer.platform,
+            "rank": mr.rank,
+            "composite_score": mr.composite_score,
+            "authenticity_score": mr.authenticity_score,
+            "semantic_score": mr.semantic_score,
+            "cpe": mr.cpe,
+            "created_at": mr.created_at.isoformat() if mr.created_at else None
+        })
+        
+    # Sort cpe_ranking by cpe ascending (nulls/zeros last)
+    def cpe_sort_key(item):
+        val = item["cpe"]
+        if val is None or val == 0:
+            return float('inf')
+        return val
+        
+    cpe_ranking = sorted(cpe_ranking_temp, key=cpe_sort_key)
+    
+    return {
+        "campaign_id": str(campaign_id),
+        "fit_authenticity_map": fit_authenticity_map,
+        "cpe_ranking": cpe_ranking,
+        "history_logs": history_logs
+    }
