@@ -1,0 +1,243 @@
+/* Settings Page Styles - Oatmeal Lavender Theme */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 920px;
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  background: #ffffff;
+}
+
+.card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-bottom: 1px solid var(--color-surface-container-high);
+  padding-bottom: var(--space-sm);
+}
+
+/* Profile Section */
+.profile-edit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+}
+
+.avatar-edit-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.user-avatar-lg {
+  width: 84px;
+  height: 84px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-headline);
+  font-size: 2rem;
+  font-weight: 700;
+  border: 2px solid var(--color-primary);
+}
+
+.avatar-overlay-btn {
+  font-size: 0.75rem;
+}
+
+.profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  flex: 1;
+}
+
+.disabled-input {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+  cursor: not-allowed;
+}
+
+/* API Section */
+.api-list-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.api-key-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px dashed var(--color-surface-container-highest);
+}
+
+.api-input-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.masked-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.masked-input-wrapper .input-field {
+  padding-right: 70px;
+  font-family: monospace;
+  font-size: 0.9375rem;
+}
+
+.btn-toggle-vis {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-toggle-vis:hover {
+  background: var(--color-surface-container-low);
+}
+
+.api-btn-col {
+  flex-shrink: 0;
+}
+
+/* Preferences Section */
+.pref-row {
+  display: flex;
+  gap: var(--space-xl);
+  align-items: center;
+}
+
+.pref-slider-box {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pref-currency-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pref-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px dashed var(--color-surface-container-high);
+}
+
+.checkbox-group-row {
+  display: flex;
+  gap: var(--space-xl);
+}
+
+/* Appearance Section */
+.appearance-options-row {
+  display: flex;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.appearance-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 280px;
+}
+
+.toggle-btn-group {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.toggle-btn-group .btn {
+  flex: 1;
+}
+
+/* Account Actions Section */
+.account-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  gap: var(--space-md);
+}
+
+.action-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.border-top-danger {
+  border-top: 1px solid var(--color-error-container);
+  padding-top: var(--space-md);
+}
+
+.text-danger {
+  color: var(--color-error) !important;
+}
+
+/* Footers */
+.card-action-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-surface-container-high);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-edit-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .api-key-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pref-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .account-actions-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

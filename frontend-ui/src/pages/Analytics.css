@@ -1,0 +1,147 @@
+/* Analytics Page Styles - Oatmeal Lavender Theme */
+.analytics-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.brief-selector-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.brief-selector {
+  width: 260px;
+  padding: 8px 12px;
+  font-weight: 500;
+  color: var(--color-tertiary);
+}
+
+/* KPI Row */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-lg);
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.kpi-top {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kpi-sparkline {
+  margin-top: -8px;
+}
+
+/* Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  background: #ffffff;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-surface-container-high);
+  padding-bottom: var(--space-sm);
+}
+
+.chart-body {
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+/* History Section Table */
+.history-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  background: #ffffff;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.table-search {
+  width: 300px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-table tr:nth-child(even) {
+  background: var(--color-secondary-container) !important; /* Oatmeal light #eee0d5 */
+}
+
+.analytics-table tr:nth-child(odd) {
+  background: #ffffff !important;
+}
+
+.analytics-table tr:hover {
+  background: var(--color-surface-container-high) !important;
+}
+
+.score-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.mini-progress {
+  width: 60px;
+  height: 6px;
+}
+
+/* Responsive */
+@media (max-width: 1120px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
