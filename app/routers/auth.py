@@ -11,6 +11,12 @@ from app.database import get_db
 from app.models.user import User
 from app.core.security import get_password_hash, verify_password, create_access_token, get_current_user
 
+try:
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -134,6 +140,90 @@ async def login(response: Response, auth_data: UserLogin, db: AsyncSession = Dep
             "id": str(user.id),
             "email": user.email,
             "full_name": user.full_name or user.email.split('@')[0].capitalize(),
+            "company_or_agency": user.company_or_agency,
+            "avatar_url": user.avatar_url
+        }
+    }
+
+class SSOLogin(BaseModel):
+    token: str
+    provider: str  # "google" or "apple"
+
+@router.post("/sso")
+async def sso_login(response: Response, auth_data: SSOLogin, db: AsyncSession = Depends(get_db)):
+    email = None
+    full_name = None
+    
+    if auth_data.provider == "google":
+        try:
+            # Requires google-auth package installed
+            client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+            if not client_id and auth_data.token.startswith("dev_"):
+                # Dev bypass
+                email = "nithinvinuthan123@gmail.com"
+                full_name = "Nithin Vinuthan (Dev)"
+            else:
+                idinfo = id_token.verify_oauth2_token(auth_data.token, google_requests.Request(), client_id)
+                email = idinfo['email']
+                full_name = idinfo.get('name', '')
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Google token: {str(e)}")
+            
+    elif auth_data.provider == "apple":
+        # Apple verification logic (requires pyjwt and apple public keys)
+        # For this template, we mock the Apple flow or require the client to send a verified JWT.
+        if auth_data.token.startswith("dev_"):
+            email = "nithinvinuthan123@gmail.com"
+            full_name = "Nithin Vinuthan (Dev)"
+        else:
+            raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Apple SSO backend verification not fully configured yet.")
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported provider.")
+
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email not provided by SSO provider.")
+
+    # Check if user exists
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        # Auto-register new SSO user with random password
+        import secrets
+        random_password = secrets.token_urlsafe(16)
+        hashed_password = get_password_hash(random_password)
+        
+        user = User(
+            email=email,
+            hashed_password=hashed_password,
+            full_name=full_name or email.split('@')[0].capitalize(),
+            company_or_agency="MatchInfluence User"
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        
+    token_data = {"sub": str(user.id)}
+    access_token = create_access_token(data=token_data)
+    
+    is_prod = os.getenv("ENVIRONMENT") == "production"
+    
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        secure=is_prod,
+        samesite="none" if is_prod else "lax",
+        max_age=7 * 24 * 60 * 60  # 7 days
+    )
+    
+    return {
+        "status": "success",
+        "message": "SSO Login successful",
+        "profile": {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
             "company_or_agency": user.company_or_agency,
             "avatar_url": user.avatar_url
         }

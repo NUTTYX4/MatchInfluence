@@ -54,6 +54,12 @@ export const authAPI = {
       body: { email, password, recaptcha_token: 'verified_client_session' },
     }),
 
+  ssoLogin: (token: string, provider: 'google' | 'apple') =>
+    request<{ status: string; message: string; profile?: UserProfile }>('/auth/sso', {
+      method: 'POST',
+      body: { token, provider },
+    }),
+
   logout: () =>
     request('/auth/logout', { method: 'POST' }),
 
