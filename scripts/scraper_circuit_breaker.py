@@ -21,7 +21,7 @@ if not GEMINI_API_KEY:
     sys.exit(1)
 
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={GEMINI_API_KEY}"
-INGEST_URL = "http://127.0.0.1:8000/influencers/ingest"
+INGEST_URL = os.getenv("INGEST_URL", "http://127.0.0.1:8000/influencers/ingest")
 
 NICHES = [
     "Indian tech reviewers",

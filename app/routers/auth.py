@@ -1,3 +1,4 @@
+import os
 import logging
 import re
 from typing import Optional
@@ -115,12 +116,14 @@ async def login(response: Response, auth_data: UserLogin, db: AsyncSession = Dep
     token_data = {"sub": str(user.id)}
     access_token = create_access_token(data=token_data)
     
+    is_prod = os.getenv("ENVIRONMENT") == "production"
+    
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=is_prod,
+        samesite="none" if is_prod else "lax",
         max_age=7 * 24 * 60 * 60  # 7 days
     )
     
@@ -178,11 +181,12 @@ async def update_me(profile_data: UserProfileUpdate, current_user_id: str = Depe
 
 @router.post("/logout")
 async def logout(response: Response):
+    is_prod = os.getenv("ENVIRONMENT") == "production"
     response.delete_cookie(
         key="access_token",
         httponly=True,
-        secure=False,
-        samesite="lax"
+        secure=is_prod,
+        samesite="none" if is_prod else "lax"
     )
     return {"status": "success", "message": "Logged out successfully"}
 
