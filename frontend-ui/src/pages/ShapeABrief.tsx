@@ -107,7 +107,7 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
           />
 
           <div className="workspace-actions">
-            <span className="text-label-sm text-muted">💡 Tip: Include goals, platform preferences, and budget.</span>
+            <span className="text-label-sm text-muted">Tip: Include objectives, platform target, and budget parameters.</span>
             <button
               type="button"
               className="btn btn-primary btn-lg search-btn"
@@ -128,7 +128,7 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
             </div>
             {analysis?.missing_fields && analysis.missing_fields.length > 0 && (
               <span className="badge badge-warning">
-                ⚠️ Missing: {analysis.missing_fields.join(', ')}
+                Missing parameters: {analysis.missing_fields.join(', ')}
               </span>
             )}
           </div>
@@ -217,7 +217,7 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
             onClick={handleLaunch}
             disabled={launching}
           >
-            {launching ? <span className="spinner"></span> : <>Launch Brief 🚀</>}
+            {launching ? <span className="spinner"></span> : <>Launch Brief</>}
           </button>
         </div>
       </div>
@@ -238,8 +238,8 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
             <h3 className="text-headline-sm brief-title">Q4 Protein Supplement Launch</h3>
             <p className="text-body-sm text-muted">Targeting Gen Z Fitness enthusiasts across Instagram and YouTube Shorts.</p>
             <div className="brief-card-footer">
-              <span className="brief-meta">💰 $5,000 Budget</span>
-              <span className="brief-meta">👥 42 Creators</span>
+              <span className="brief-meta">$5,000 Budget</span>
+              <span className="brief-meta">42 Creators</span>
             </div>
           </div>
 
@@ -251,8 +251,8 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
             <h3 className="text-headline-sm brief-title">Tech Wearable Unboxing</h3>
             <p className="text-body-sm text-muted">High-authenticity micro-creators in the consumer gadgets niche.</p>
             <div className="brief-card-footer">
-              <span className="brief-meta">💰 $12,000 Budget</span>
-              <span className="brief-meta">👥 18 Creators</span>
+              <span className="brief-meta">$12,000 Budget</span>
+              <span className="brief-meta">18 Creators</span>
             </div>
           </div>
         </div>

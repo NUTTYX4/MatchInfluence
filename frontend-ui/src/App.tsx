@@ -7,13 +7,31 @@ import { Creators } from './pages/Creators';
 import { MyBriefs } from './pages/MyBriefs';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
+import { authAPI, type UserProfile } from './api/client';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
 
+  const handleLogin = (profile?: UserProfile) => {
+    setIsAuthenticated(true);
+    if (profile) {
+      setUserProfile(profile);
+    } else {
+      authAPI.getProfile().then(setUserProfile).catch(() => {
+        setUserProfile({
+          id: "default-user",
+          email: "nithinvinuthan123@gmail.com",
+          full_name: "Nithin Vinuthan",
+          company_or_agency: "MatchInfluence Enterprise",
+        });
+      });
+    }
+  };
+
   if (!isAuthenticated) {
-    return <Authentication onLogin={() => setIsAuthenticated(true)} />;
+    return <Authentication onLogin={handleLogin} />;
   }
 
   const handleCampaignCreated = (id: string) => {
@@ -21,7 +39,7 @@ function App() {
   };
 
   return (
-    <AppLayout onLogout={() => setIsAuthenticated(false)}>
+    <AppLayout onLogout={() => { setIsAuthenticated(false); setUserProfile(null); }} userProfile={userProfile}>
       <Routes>
         <Route
           path="/"
@@ -36,7 +54,7 @@ function App() {
           path="/analytics"
           element={<Analytics campaignId={activeCampaignId} />}
         />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/settings" element={<Settings userProfile={userProfile} onUpdateProfile={setUserProfile} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

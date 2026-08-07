@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     APIFY_TOKEN: str = os.getenv("APIFY_TOKEN", "")
     APIFY_INSTAGRAM_URL: str = os.getenv("APIFY_INSTAGRAM_URL", "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items")
     DATA_REFRESH_INTERVAL_DAYS: int = int(os.getenv("DATA_REFRESH_INTERVAL_DAYS", "7"))
+    
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

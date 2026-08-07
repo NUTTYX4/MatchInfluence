@@ -1,11 +1,12 @@
 import { type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { authAPI } from '../api/client';
+import { authAPI, type UserProfile } from '../api/client';
 import './AppLayout.css';
 
 interface AppLayoutProps {
   children: ReactNode;
   onLogout: () => void;
+  userProfile: UserProfile | null;
 }
 
 const navItems = [
@@ -13,10 +14,9 @@ const navItems = [
   { path: '/creators', label: 'Creators', icon: '◎' },
   { path: '/briefs', label: 'My Briefs', icon: '▤' },
   { path: '/analytics', label: 'Analytics', icon: '◔' },
-  { path: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
-export function AppLayout({ children, onLogout }: AppLayoutProps) {
+export function AppLayout({ children, onLogout, userProfile }: AppLayoutProps) {
   const location = useLocation();
 
   const handleLogout = async () => {
@@ -27,6 +27,9 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
     }
     onLogout();
   };
+
+  const displayName = userProfile?.full_name || 'Nithin Vinuthan';
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="app-layout">
@@ -55,9 +58,22 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
         </nav>
 
         <div className="sidebar-footer">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `nav-item ${isActive ? 'nav-item-active' : ''}`
+            }
+          >
+            <span className="nav-icon">⚙</span>
+            <span className="nav-label">Settings</span>
+          </NavLink>
           <div className="sidebar-user">
-            <div className="user-avatar">U</div>
-            <span className="user-name">User</span>
+            {userProfile?.avatar_url ? (
+              <img src={userProfile.avatar_url} alt="Profile" className="user-avatar-img" />
+            ) : (
+              <div className="user-avatar">{initial}</div>
+            )}
+            <span className="user-name" title={displayName}>{displayName}</span>
           </div>
           <button className="nav-item logout-btn" onClick={handleLogout}>
             <span className="nav-icon">↗</span>

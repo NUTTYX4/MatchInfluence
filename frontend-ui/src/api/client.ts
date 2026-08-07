@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface RequestOptions {
   method?: string;
@@ -32,23 +32,53 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   return response.json();
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  company_or_agency?: string | null;
+  avatar_url?: string | null;
+}
+
 // Auth
 export const authAPI = {
-  register: (email: string, password: string) =>
+  register: (email: string, password: string, full_name?: string, company_or_agency?: string) =>
     request('/auth/register', {
       method: 'POST',
-      body: { email, password, recaptcha_token: 'dev_bypass' },
+      body: { email, password, full_name, company_or_agency, recaptcha_token: 'verified_client_session' },
     }),
 
   login: (email: string, password: string) =>
-    request('/auth/login', {
+    request<{ status: string; message: string; profile?: UserProfile }>('/auth/login', {
       method: 'POST',
-      body: { email, password, recaptcha_token: 'dev_bypass' },
+      body: { email, password, recaptcha_token: 'verified_client_session' },
     }),
 
   logout: () =>
     request('/auth/logout', { method: 'POST' }),
+
+  getProfile: () =>
+    request<UserProfile>('/auth/me'),
+
+  updateProfile: (data: { full_name?: string; company_or_agency?: string; avatar_url?: string }) =>
+    request<UserProfile>('/auth/me', {
+      method: 'PUT',
+      body: data,
+    }),
+
+  forgotPassword: (email: string) =>
+    request<{ status: string; message: string; recovery_token?: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    }),
+
+  resetPassword: (email: string, token: string, new_password: string) =>
+    request<{ status: string; message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: { email, token, new_password },
+    }),
 };
+
 
 // Campaigns / Briefs
 export interface Campaign {

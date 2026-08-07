@@ -143,8 +143,8 @@ export function MyBriefs({ onSelect }: MyBriefsProps) {
                 <h2 className="text-headline-md brief-main-title">{brief.title}</h2>
                 
                 <div className="brief-tags-row">
-                  <span className="chip text-label-sm">🎯 {brief.niche}</span>
-                  <span className="chip text-label-sm">👥 {brief.targetAudience}</span>
+                  <span className="chip text-label-sm">Niche: {brief.niche}</span>
+                  <span className="chip text-label-sm">Audience: {brief.targetAudience}</span>
                 </div>
               </div>
 
