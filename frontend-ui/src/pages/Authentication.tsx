@@ -394,10 +394,10 @@ export function Authentication({ onLogin }: AuthenticationProps) {
               </div>
 
               <div className="social-login-group">
-                <button type="button" className="btn btn-outline social-btn" onClick={() => onLogin()}>
+                <button type="button" className="btn btn-outline social-btn" onClick={() => alert("Google SSO is not configured for this environment yet. Please use email sign in.")}>
                   Google
                 </button>
-                <button type="button" className="btn btn-outline social-btn" onClick={() => onLogin()}>
+                <button type="button" className="btn btn-outline social-btn" onClick={() => alert("Apple SSO is not configured for this environment yet. Please use email sign in.")}>
                   Apple
                 </button>
               </div>
