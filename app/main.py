@@ -1,3 +1,7 @@
+import asyncio
+import httpx
+import os
+import logging
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +38,25 @@ app = FastAPI(
     description="Enterprise Influencer Matching & Scoring Engine",
     version="3.0"
 )
+
+logger = logging.getLogger(__name__)
+
+async def keep_alive_loop():
+    """Background task to ping the server and prevent it from sleeping on free tiers."""
+    # Ping the public URL if provided (e.g. on Render/Railway), else localhost
+    url = os.getenv("PUBLIC_URL", "http://127.0.0.1:8000/")
+    while True:
+        await asyncio.sleep(14 * 60)  # Ping every 14 minutes
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.get(url)
+                logger.info(f"Keep-alive ping successful to {url}")
+        except Exception as e:
+            logger.error(f"Keep-alive ping failed: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_alive_loop())
 
 app.include_router(auth.router)
 
