@@ -229,7 +229,7 @@ export function Creators({ campaignId }: CreatorsProps) {
             </div>
           ) : (
             sortedCreators.map((creator, idx) => {
-              const rankBadgeClass = creator.rank === 1 ? 'gold' : creator.rank === 2 ? 'silver' : creator.rank === 3 ? 'bronze' : '';
+              const rankBadgeClass = creator.rank === 1 ? 'gold' : creator.rank === 2 ? 'silver' : creator.rank === 3 ? 'bronze' : 'default-rank';
               const isShortlisted = addedToShortlist.includes(creator.username);
               return (
                 <div key={creator.username} className="creator-card card animate-slide-up" style={{ animationDelay: `${idx * 0.08}s` }}>
@@ -239,7 +239,7 @@ export function Creators({ campaignId }: CreatorsProps) {
                         #{creator.rank}
                       </div>
                       <div className="creator-avatar">
-                        {creator.username.charAt(1).toUpperCase()}
+                        {creator.username.startsWith('@') ? creator.username.charAt(1).toUpperCase() : creator.username.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <h3 className="text-headline-sm creator-name">{creator.username}</h3>
@@ -351,7 +351,7 @@ export function Creators({ campaignId }: CreatorsProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '1px solid var(--color-surface-container-high)', paddingBottom: '16px' }}>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                 <div className="creator-avatar" style={{ width: '64px', height: '64px', fontSize: '1.5rem' }}>
-                  {selectedCreator.username.charAt(1).toUpperCase()}
+                  {selectedCreator.username.startsWith('@') ? selectedCreator.username.charAt(1).toUpperCase() : selectedCreator.username.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <h2 className="text-headline-md">{selectedCreator.username}</h2>

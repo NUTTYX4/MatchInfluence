@@ -440,6 +440,11 @@ input, textarea, select {
   color: #fff;
 }
 
+.badge-rank.default-rank {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+}
+
 /* Stat Cards */
 .stat-card {
   background: var(--color-surface-container-lowest);
@@ -469,12 +474,11 @@ input, textarea, select {
 /* Score Ring */
 .score-ring {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 100%;
+  height: 100%;
 }
 
 .score-ring svg {
-  transform: rotate(-90deg);
 }
 
 .score-ring .score-value {
