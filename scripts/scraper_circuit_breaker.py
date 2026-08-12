@@ -8,8 +8,10 @@ import re
 import httpx
 from dotenv import load_dotenv
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s")
+# Configure logging with UTF-8 stream to prevent charmap errors on Windows
+_handler = logging.StreamHandler(stream=open(sys.stdout.fileno(), mode='w', encoding='utf-8', closefd=False))
+_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s: %(message)s"))
+logging.basicConfig(level=logging.INFO, handlers=[_handler])
 logger = logging.getLogger(__name__)
 
 # Load environment variables
@@ -34,7 +36,7 @@ NICHES = [
 async def fetch_ai_suggestions(client: httpx.AsyncClient, platform: str) -> list:
     """Fetches AI suggestions for handles/IDs based on a random niche."""
     niche = random.choice(NICHES)
-    logger.info(f"🧠 Asking AI for {platform} creators in niche: {niche}")
+    logger.info(f"[AI] Asking for {platform} creators in niche: {niche}")
     
     headers = {
         "Content-Type": "application/json"
@@ -120,7 +122,7 @@ async def crawl():
                 
                 for handle in handles:
                     clean_handle = handle.replace("@", "").strip()
-                    logger.info(f"🔍 Ingesting {platform} @{clean_handle}...")
+                    logger.info(f"[>] Ingesting {platform} @{clean_handle}...")
                     
                     # Fix 422: Changed key from 'handle' to 'target_id'
                     payload = {
@@ -131,16 +133,16 @@ async def crawl():
                     try:
                         response = await client.post(INGEST_URL, json=payload)
                         if response.status_code in [200, 201]:
-                            logger.info(f"✅ Success: {platform} @{clean_handle} ingested!")
+                            logger.info(f"[OK] {platform} @{clean_handle} ingested!")
                             consecutive_errors = 0 # Reset on successful ingestion
                         else:
-                            logger.error(f"❌ Failed to ingest {platform} @{clean_handle} (Status {response.status_code}): {response.text}")
+                            logger.error(f"[FAIL] {platform} @{clean_handle} (Status {response.status_code}): {response.text}")
                             consecutive_errors += 1
                     except httpx.RequestError as e:
-                        logger.error(f"💥 Network error ingesting {platform} @{clean_handle}: {str(e)}")
+                        logger.error(f"[NET ERR] {platform} @{clean_handle}: {str(e)}")
                         consecutive_errors += 1
                     except Exception as e:
-                        logger.error(f"💥 Unexpected error on {platform} @{clean_handle}: {str(e)}")
+                        logger.error(f"[ERR] {platform} @{clean_handle}: {str(e)}")
                         consecutive_errors += 1
                     
                     if consecutive_errors >= ERROR_THRESHOLD:
@@ -148,11 +150,11 @@ async def crawl():
                         return # Exit the function
                     
                     delay = random.uniform(20.0, 40.0)
-                    logger.info(f"⏳ Cooling down for {delay:.2f} seconds to protect upstream APIs...\n")
+                    logger.info(f"[WAIT] Cooling down for {delay:.2f}s...")
                     await asyncio.sleep(delay)
                     
             except Exception as e:
-                logger.error(f"💥 Critical error in main crawler loop: {str(e)}")
+                logger.error(f"Critical error in main crawler loop: {str(e)}")
                 consecutive_errors += 1
                 if consecutive_errors >= ERROR_THRESHOLD:
                     logger.critical(f"Circuit Breaker Triggered: {consecutive_errors} consecutive critical loop errors. Exiting.")

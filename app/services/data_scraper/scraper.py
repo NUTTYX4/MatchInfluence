@@ -1,4 +1,5 @@
 import logging
+import re
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 from app.config import settings
@@ -7,6 +8,13 @@ from app.services.ai import AIEngine
 from app.services.data_service import DataIngestionService
 
 logger = logging.getLogger(__name__)
+
+def _safe_str(text: str) -> str:
+    """Strips emoji and non-ASCII characters so logging never crashes on Windows charmap codec."""
+    if not text:
+        return text
+    # Remove emoji and other non-BMP characters
+    return re.sub(r'[\U00010000-\U0010ffff]', '', text, flags=re.UNICODE).encode('ascii', 'ignore').decode('ascii')
 
 class IngestionScraperEngine:
     @staticmethod
@@ -46,8 +54,7 @@ class IngestionScraperEngine:
             response.raise_for_status()
             data = response.json()
             
-            import json
-            print("\n🚨 RAW YOUTUBE PAYLOAD:", json.dumps(data, indent=2), "\n")
+            logger.debug("YouTube channel data fetched: %s", snippet.get("title", ""))
             
             if not data.get("items"):
                 raise ValueError(f"No YouTube channel found for ID: {channel_id}")
@@ -58,15 +65,15 @@ class IngestionScraperEngine:
             
             return {
                 "username": snippet.get("customUrl", snippet["title"]),
-                "full_name": snippet["title"],
+                "full_name": _safe_str(snippet["title"]),
                 "platform": "youtube",
                 "profile_url": f"https://youtube.com/channel/{channel_id}",
                 "follower_count": int(stats.get("subscriberCount", 0)),
-                "total_views": int(stats.get("viewCount", 0)), # not standard, but useful
+                "total_views": int(stats.get("viewCount", 0)),
                 "avg_views": int(stats.get("viewCount", 0)) // max(int(stats.get("videoCount", 1)), 1),
                 "post_count": int(stats.get("videoCount", 0)),
-                "bio": snippet["description"],
-                "recent_posts": "", # Need a separate call to search/playlistItems for recent posts
+                "bio": _safe_str(snippet["description"]),
+                "recent_posts": "",
                 "niche_tags": [],
                 "source": "youtube_api"
             }
@@ -93,8 +100,7 @@ class IngestionScraperEngine:
                 response.raise_for_status()
                 data = response.json()
                 
-                import json
-                print("\n🚨 DEBUG INSTAGRAM RAW PAYLOAD:", json.dumps(data, indent=2), "\n")
+                logger.debug("Instagram profile data fetched for user: %s", clean_username)
                 
                 if not data or len(data) == 0:
                     from fastapi import HTTPException
@@ -117,10 +123,10 @@ class IngestionScraperEngine:
                     "follower_count": user_info.get("followersCount", 0), 
                     "following_count": user_info.get("followsCount", 0),
                     "post_count": user_info.get("postsCount", 0),
-                    "total_likes": total_likes,        # Now it captures real engagement!
-                    "total_comments": total_comments,  # Now it captures real engagement!
-                    "full_name": user_info.get("fullName", username),
-                    "bio": user_info.get("biography", ""),
+                    "total_likes": total_likes,
+                    "total_comments": total_comments,
+                    "full_name": _safe_str(user_info.get("fullName", username)),
+                    "bio": _safe_str(user_info.get("biography", "")),
                     "niche_tags": [],
                     "source": "apify_premium"
                 }
