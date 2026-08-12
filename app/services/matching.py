@@ -124,33 +124,32 @@ class MatchingOrchestrator:
             for idx, candidate in enumerate(candidate_prep):
                 final_candidates.append({
                     "influencer_id": candidate["inf_id"],
-                    "influencer": {
-                        "username": candidate["inf"].username,
-                        "platform": candidate["inf"].platform,
-                        "followers": candidate["inf"].follower_count,
-                        "price": candidate["inf"].price_per_post
-                    },
-                    "metrics": candidate["metrics"],
-                    "scores": candidate["scores"],
-                    "financials": {
-                        "cpe": round(candidate["cpe"], 4)
-                    },
+                    "username": candidate["inf"].username,
+                    "platform": candidate["inf"].platform,
+                    "follower_count": candidate["inf"].follower_count,
+                    "engagement_rate": round(candidate["metrics"]["er"], 2),
+                    "composite_score": int(candidate["scores"]["composite_fit"] * 100),
+                    "semantic_score": int(candidate["scores"]["semantic_match"] * 100),
+                    "authenticity_score": int(candidate["scores"]["authenticity"] * 100),
+                    "cpe": round(candidate["cpe"], 4),
                     "explanation": explanations[idx]
                 })
 
-            final_candidates.sort(key=lambda x: x["scores"]["composite_fit"], reverse=True)
+            final_candidates.sort(key=lambda x: x["composite_score"], reverse=True)
             
             # 8. PERSIST
             for rank_index, candidate in enumerate(final_candidates):
+                candidate["rank"] = rank_index + 1
+                
                 db_match = MatchResult(
                     campaign_id=db_campaign.id,
                     influencer_id=uuid.UUID(candidate["influencer_id"]),
-                    semantic_score=candidate["scores"]["semantic_match"],
-                    authenticity_score=candidate["scores"]["authenticity"],
-                    composite_score=candidate["scores"]["composite_fit"],
-                    cpe=candidate["financials"]["cpe"],
+                    semantic_score=candidate["semantic_score"],
+                    authenticity_score=candidate["authenticity_score"],
+                    composite_score=candidate["composite_score"],
+                    cpe=candidate["cpe"],
                     explanation=candidate["explanation"],
-                    rank=rank_index + 1
+                    rank=candidate["rank"]
                 )
                 db.add(db_match)
                 
