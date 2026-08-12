@@ -170,7 +170,17 @@ async def list_campaigns(
     """Fetch all live campaign IDs for current user."""
     result = await db.execute(select(Campaign).where(Campaign.owner_id == current_user_id))
     campaigns = result.scalars().all()
-    return [{"id": str(c.id), "niche": c.niche, "budget": c.budget} for c in campaigns]
+    return [
+        {
+            "id": str(c.id),
+            "niche": c.niche,
+            "audience": c.audience,
+            "budget": c.budget,
+            "target_reach": c.target_reach,
+            "brief_text": c.brief_text,
+        }
+        for c in campaigns
+    ]
 
 
 class IngestRequest(BaseModel):
