@@ -39,14 +39,18 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
     try {
       const res = await campaignAPI.analyze(promptText);
       setAnalysis(res);
-      if (res.niche) setNiche(res.niche);
-      if (res.audience) setAudience(res.audience);
-      if (res.budget) setBudget(res.budget);
-      if (res.target_reach) setReach(res.target_reach);
+      setNiche(res.niche || 'Tech & Gaming');
+      setAudience(res.audience || 'Gen Z & Millennials');
+      setBudget(res.budget || 5000);
+      setReach(res.target_reach || 100000);
     } catch (e) {
       console.warn('Backend analyze check fallback during dev:', e);
       // Keep mock analysis updated with user text
       setAnalysis(prev => prev ? ({ ...prev, niche: promptText.slice(0, 20), co_pilot_message: 'Parameters extracted from your brief vision.' }) : null);
+      setNiche(promptText.slice(0, 20) || 'Tech & Gaming');
+      setAudience('Gen Z & Millennials');
+      setBudget(5000);
+      setReach(100000);
     } finally {
       setAnalyzing(false);
     }
