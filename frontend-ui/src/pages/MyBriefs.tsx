@@ -1,81 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { campaignAPI, type Campaign } from '../api/client';
 import './MyBriefs.css';
 
 interface MyBriefsProps {
   onSelect: (id: string) => void;
 }
 
-interface BriefItem {
-  id: string;
-  title: string;
-  niche: string;
-  targetAudience: string;
-  budget: number;
-  creatorsCount: number;
-  status: 'Active' | 'Completed' | 'Draft';
-  createdAt: string;
-  avgFitScore: number;
-}
-
-const initialBriefs: BriefItem[] = [
-  {
-    id: 'brief-1',
-    title: 'Q4 Protein Supplement Launch',
-    niche: 'Fitness & Wellness',
-    targetAudience: 'Men 25-35, Gym Goers',
-    budget: 5000,
-    creatorsCount: 42,
-    status: 'Active',
-    createdAt: 'Oct 14, 2026',
-    avgFitScore: 88,
-  },
-  {
-    id: 'brief-2',
-    title: 'Tech Wearable Smart Ring Unboxing',
-    niche: 'Consumer Gadgets & Tech',
-    targetAudience: 'Early adopters, Gen Z & Millennial',
-    budget: 12000,
-    creatorsCount: 18,
-    status: 'Completed',
-    createdAt: 'Sep 28, 2026',
-    avgFitScore: 92,
-  },
-  {
-    id: 'brief-3',
-    title: 'Sustainable Skincare Glow Routine',
-    niche: 'Beauty & Lifestyle',
-    targetAudience: 'Women 18-30, Eco-conscious',
-    budget: 8500,
-    creatorsCount: 29,
-    status: 'Active',
-    createdAt: 'Oct 02, 2026',
-    avgFitScore: 85,
-  },
-  {
-    id: 'brief-4',
-    title: 'Holiday Specialty Coffee Subscription',
-    niche: 'Food & Beverage',
-    targetAudience: 'Coffee enthusiasts, Urban professionals',
-    budget: 3500,
-    creatorsCount: 12,
-    status: 'Draft',
-    createdAt: 'Aug 15, 2026',
-    avgFitScore: 81,
-  }
-];
-
 export function MyBriefs({ onSelect }: MyBriefsProps) {
   const navigate = useNavigate();
-  const [briefs] = useState<BriefItem[]>(initialBriefs);
-  const [filter, setFilter] = useState<'All' | 'Active' | 'Completed' | 'Draft'>('All');
+  const [briefs, setBriefs] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    campaignAPI.list()
+      .then((res) => {
+        setBriefs(res as Campaign[]);
+      })
+      .catch((e: any) => {
+        setError(e.message || 'Failed to load your briefs. Please try again.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   const filteredBriefs = briefs.filter(b => {
-    const matchesFilter = filter === 'All' || b.status === filter;
-    const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          b.niche.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+    const query = searchQuery.toLowerCase();
+    return (
+      (b.niche ?? '').toLowerCase().includes(query) ||
+      (b.audience ?? '').toLowerCase().includes(query)
+    );
   });
 
   const handleSelectBrief = (id: string) => {
@@ -95,38 +52,77 @@ export function MyBriefs({ onSelect }: MyBriefsProps) {
         </div>
       </header>
 
-      <div className="briefs-toolbar card">
-        <div className="brief-tabs">
-          {(['All', 'Active', 'Completed', 'Draft'] as const).map((tab) => (
-            <button
-              key={tab}
-              className={`chip ${filter === tab ? 'chip-primary' : ''}`}
-              onClick={() => setFilter(tab)}
-            >
-              {tab}
-            </button>
-          ))}
+      {/* Error Banner */}
+      {error && (
+        <div className="card" style={{
+          background: 'var(--color-error-container, #fef2f2)',
+          border: '1px solid var(--color-error, #dc2626)',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          color: 'var(--color-error, #dc2626)',
+          fontSize: '0.875rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span>⚠ {error}</span>
+          <button type="button" onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>✕</button>
         </div>
+      )}
 
-        <div className="brief-search">
+      <div className="briefs-toolbar card">
+        <div className="brief-search" style={{ width: '100%' }}>
           <input
             type="text"
             className="input-field"
-            placeholder="Search briefs by title or niche..."
+            placeholder="Search briefs by niche or audience..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="briefs-list-grid">
-        {filteredBriefs.length === 0 ? (
-          <div className="empty-state card">
-            <p className="text-headline-sm">No briefs found matching your search.</p>
-            <button className="btn btn-primary btn-sm mt-4" onClick={() => { setFilter('All'); setSearchQuery(''); }}>Reset Filters</button>
-          </div>
-        ) : (
-          filteredBriefs.map((brief, idx) => (
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="briefs-list-grid">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="brief-full-card card" style={{ opacity: 0.5, animation: 'pulse 1.5s infinite' }}>
+              <div className="brief-card-left">
+                <div style={{ height: '20px', background: 'var(--color-surface-container-high)', borderRadius: '4px', width: '60%', marginBottom: '12px' }}></div>
+                <div style={{ height: '28px', background: 'var(--color-surface-container)', borderRadius: '4px', width: '90%', marginBottom: '8px' }}></div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ height: '24px', background: 'var(--color-surface-container-high)', borderRadius: '20px', width: '100px' }}></div>
+                  <div style={{ height: '24px', background: 'var(--color-surface-container-high)', borderRadius: '20px', width: '140px' }}></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && filteredBriefs.length === 0 && (
+        <div className="empty-state card" style={{ padding: '64px', textAlign: 'center' }}>
+          {briefs.length === 0 ? (
+            <>
+              <p className="text-headline-sm" style={{ marginBottom: '8px' }}>No campaigns yet.</p>
+              <p className="text-body-md text-muted" style={{ marginBottom: '20px' }}>Shape your first brief to start matching with creators.</p>
+              <button className="btn btn-primary" onClick={() => navigate('/')}>+ Shape a New Brief</button>
+            </>
+          ) : (
+            <>
+              <p className="text-headline-sm">No briefs match your search.</p>
+              <button className="btn btn-primary btn-sm" style={{ marginTop: '16px' }} onClick={() => setSearchQuery('')}>Clear Search</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Briefs List */}
+      {!loading && filteredBriefs.length > 0 && (
+        <div className="briefs-list-grid">
+          {filteredBriefs.map((brief, idx) => (
             <div
               key={brief.id}
               className="brief-full-card card animate-slide-up"
@@ -134,32 +130,30 @@ export function MyBriefs({ onSelect }: MyBriefsProps) {
             >
               <div className="brief-card-left">
                 <div className="brief-status-row">
-                  <span className={`badge ${brief.status === 'Active' ? 'badge-primary' : brief.status === 'Completed' ? 'badge-success' : 'badge-warning'}`}>
-                    {brief.status}
-                  </span>
-                  <span className="text-label-sm text-muted">Created {brief.createdAt}</span>
+                  <span className="badge badge-primary">Active</span>
+                  <span className="text-label-sm text-muted">ID: {brief.id.slice(0, 8)}...</span>
                 </div>
 
-                <h2 className="text-headline-md brief-main-title">{brief.title}</h2>
-                
+                <h2 className="text-headline-md brief-main-title">{brief.niche || 'Untitled Campaign'}</h2>
+
                 <div className="brief-tags-row">
-                  <span className="chip text-label-sm">Niche: {brief.niche}</span>
-                  <span className="chip text-label-sm">Audience: {brief.targetAudience}</span>
+                  {brief.audience && <span className="chip text-label-sm">Audience: {brief.audience}</span>}
+                  {brief.brief_text && <span className="chip text-label-sm">{brief.brief_text.slice(0, 40)}...</span>}
                 </div>
               </div>
 
               <div className="brief-card-right">
                 <div className="brief-stat-block">
                   <span className="text-label-sm text-muted">BUDGET</span>
-                  <span className="stat-value-sm">${brief.budget.toLocaleString()}</span>
+                  <span className="stat-value-sm">${(brief.budget ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="brief-stat-block">
+                  <span className="text-label-sm text-muted">TARGET REACH</span>
+                  <span className="stat-value-sm">{brief.target_reach ? `${(brief.target_reach / 1000).toFixed(0)}K` : '—'}</span>
                 </div>
                 <div className="brief-stat-block">
                   <span className="text-label-sm text-muted">CREATORS</span>
-                  <span className="stat-value-sm">{brief.creatorsCount} Matched</span>
-                </div>
-                <div className="brief-stat-block">
-                  <span className="text-label-sm text-muted">AVG FIT</span>
-                  <span className="stat-value-sm text-primary">{brief.avgFitScore}%</span>
+                  <span className="stat-value-sm">—</span>
                 </div>
 
                 <div className="brief-card-buttons">
@@ -178,9 +172,9 @@ export function MyBriefs({ onSelect }: MyBriefsProps) {
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { campaignAPI, type BriefAnalysis } from '../api/client';
 import './ShapeABrief.css';
@@ -12,45 +12,34 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
   const [promptText, setPromptText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [launching, setLaunching] = useState(false);
-  const [analysis, setAnalysis] = useState<BriefAnalysis | null>({
-    niche: 'Fitness & Nutrition',
-    audience: 'Men 25-35, Gym Goers',
-    budget: 5000,
-    target_reach: 500000,
-    missing_fields: ['Primary Platform'],
-    suggestions: {
-      platforms: ['Instagram Reels', 'YouTube Shorts', 'TikTok'],
-      demographic_focus: ['Focus on Gen Z', 'Micro-influencers Tier'],
-      content_style: ['High-protein lifestyle', 'Supplement reviews']
-    },
-    is_complete: true,
-    co_pilot_message: 'Your brief is taking great shape! We recommend specifying at least one social platform to refine creator recommendations.'
-  });
+  const [analysis, setAnalysis] = useState<BriefAnalysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Editable fields inside the Co-Pilot card
-  const [niche, setNiche] = useState('Fitness & Nutrition');
-  const [audience, setAudience] = useState('Men 25-35, Gym Goers');
+  // Editable fields inside the Co-Pilot card — start empty
+  const [niche, setNiche] = useState('');
+  const [audience, setAudience] = useState('');
   const [budget, setBudget] = useState<number>(5000);
-  const [reach, setReach] = useState<number>(500000);
+  const [reach, setReach] = useState<number>(100000);
+
+  // Sync fields from analysis whenever it updates
+  useEffect(() => {
+    if (analysis) {
+      if (analysis.niche) setNiche(analysis.niche);
+      if (analysis.audience) setAudience(analysis.audience);
+      if (analysis.budget) setBudget(analysis.budget);
+      if (analysis.target_reach) setReach(analysis.target_reach);
+    }
+  }, [analysis]);
 
   const handleSearch = async () => {
     if (!promptText.trim()) return;
     setAnalyzing(true);
+    setError(null);
     try {
       const res = await campaignAPI.analyze(promptText);
       setAnalysis(res);
-      setNiche(res.niche || 'Tech & Gaming');
-      setAudience(res.audience || 'Gen Z & Millennials');
-      setBudget(res.budget || 5000);
-      setReach(res.target_reach || 100000);
-    } catch (e) {
-      console.warn('Backend analyze check fallback during dev:', e);
-      // Keep mock analysis updated with user text
-      setAnalysis(prev => prev ? ({ ...prev, niche: promptText.slice(0, 20), co_pilot_message: 'Parameters extracted from your brief vision.' }) : null);
-      setNiche(promptText.slice(0, 20) || 'Tech & Gaming');
-      setAudience('Gen Z & Millennials');
-      setBudget(5000);
-      setReach(100000);
+    } catch (e: any) {
+      setError(e.message || 'Failed to analyze brief. Please try again.');
     } finally {
       setAnalyzing(false);
     }
@@ -58,33 +47,43 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
 
   const handleSuggestionClick = (pill: string) => {
     setPromptText(prev => prev ? `${prev} · Include ${pill}` : `Include ${pill}`);
-    if (analysis && analysis.missing_fields.includes('Primary Platform') && ['Instagram Reels', 'YouTube Shorts', 'TikTok'].includes(pill)) {
-      setAnalysis({
-        ...analysis,
-        missing_fields: analysis.missing_fields.filter(f => f !== 'Primary Platform')
+    // If this suggestion resolves a missing field, remove it from missing_fields
+    if (analysis) {
+      const updatedMissing = analysis.missing_fields.filter(f => {
+        if (f === 'niche' && pill.length > 0) return false;
+        if (f === 'audience' && pill.length > 0) return false;
+        return true;
       });
+      setAnalysis({ ...analysis, missing_fields: updatedMissing });
     }
   };
 
   const handleLaunch = async () => {
+    if (!niche.trim() || !audience.trim()) {
+      setError('Please provide at least a Target Niche and Target Audience before launching.');
+      return;
+    }
     setLaunching(true);
+    setError(null);
     try {
       const camp = await campaignAPI.create({
-        niche,
-        audience,
+        niche: niche.trim(),
+        audience: audience.trim(),
         budget,
-        target_reach: reach
+        target_reach: reach,
       });
       onCampaignCreated(camp.id);
       navigate('/creators');
-    } catch (e) {
-      console.warn('Backend create fallback during dev:', e);
-      onCampaignCreated('demo-campaign-1');
-      navigate('/creators');
+    } catch (e: any) {
+      setError(e.message || 'Failed to create campaign. Please check your connection and try again.');
     } finally {
       setLaunching(false);
     }
   };
+
+  // Determine if launch should be disabled
+  const hasMissingCritical = !niche.trim() || !audience.trim();
+  const hasIncompleteBrief = analysis !== null && !analysis.is_complete && analysis.missing_fields.length > 0;
 
   return (
     <div className="shape-brief-container animate-fade-in">
@@ -95,11 +94,34 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
         </div>
       </header>
 
+      {error && (
+        <div className="card" style={{
+          background: 'var(--color-error-container, #fef2f2)',
+          border: '1px solid var(--color-error, #dc2626)',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          color: 'var(--color-error, #dc2626)',
+          fontSize: '0.875rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '12px',
+        }}>
+          <span>⚠ {error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '1rem', lineHeight: 1 }}
+          >✕</button>
+        </div>
+      )}
+
       <div className="brief-grid">
         {/* Left Column: AI Prompt Workspace */}
         <div className="prompt-workspace card">
           <label className="text-label workspace-label" htmlFor="brief-prompt">
-            CAMPAIGN VISION & PARAMETERS
+            CAMPAIGN VISION &amp; PARAMETERS
           </label>
           <textarea
             id="brief-prompt"
@@ -132,31 +154,37 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
             </div>
             {analysis?.missing_fields && analysis.missing_fields.length > 0 && (
               <span className="badge badge-warning">
-                Missing parameters: {analysis.missing_fields.join(', ')}
+                Missing: {analysis.missing_fields.join(', ')}
               </span>
             )}
           </div>
 
           <p className="copilot-message">
-            {analysis?.co_pilot_message || 'Enter your prompt and click Search to let the Co-Pilot extract campaign variables.'}
+            {analysis?.co_pilot_message || 'Enter your campaign vision above and click Search — the AI Co-Pilot will extract your campaign parameters automatically.'}
           </p>
 
           <div className="extracted-fields-group">
             <div className="field-row">
-              <span className="text-label">Target Niche</span>
+              <span className={`text-label${!niche.trim() && analysis !== null ? ' text-warning' : ''}`}>
+                Target Niche {!niche.trim() && analysis !== null && <span style={{ color: 'var(--color-warning, #f59e0b)' }}>*</span>}
+              </span>
               <input
                 type="text"
-                className="input-field chip-input"
+                className={`input-field chip-input${!niche.trim() && analysis !== null ? ' input-error' : ''}`}
+                placeholder="e.g. Fitness & Nutrition"
                 value={niche}
                 onChange={(e) => setNiche(e.target.value)}
               />
             </div>
 
             <div className="field-row">
-              <span className="text-label">Target Audience</span>
+              <span className={`text-label${!audience.trim() && analysis !== null ? ' text-warning' : ''}`}>
+                Target Audience {!audience.trim() && analysis !== null && <span style={{ color: 'var(--color-warning, #f59e0b)' }}>*</span>}
+              </span>
               <input
                 type="text"
-                className="input-field chip-input"
+                className={`input-field chip-input${!audience.trim() && analysis !== null ? ' input-error' : ''}`}
+                placeholder="e.g. Men 25-35, Gym Goers"
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
               />
@@ -197,7 +225,7 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
             </div>
           </div>
 
-          {analysis && analysis.suggestions && (
+          {analysis && analysis.suggestions && Object.keys(analysis.suggestions).length > 0 && (
             <div className="copilot-suggestions">
               <span className="text-label-sm text-muted">SUGGESTED ENHANCEMENTS</span>
               <div className="suggestions-chips">
@@ -215,52 +243,23 @@ export function ShapeABrief({ onCampaignCreated }: ShapeABriefProps) {
             </div>
           )}
 
+          {hasIncompleteBrief && (
+            <p className="text-label-sm" style={{ color: 'var(--color-warning, #f59e0b)', marginBottom: '8px' }}>
+              ⚠ Fill in the missing fields above before launching.
+            </p>
+          )}
+
           <button
             type="button"
             className="btn btn-primary btn-lg launch-btn"
             onClick={handleLaunch}
-            disabled={launching}
+            disabled={launching || hasMissingCritical}
+            title={hasMissingCritical ? 'Niche and Audience are required to launch' : undefined}
           >
             {launching ? <span className="spinner"></span> : <>Launch Brief</>}
           </button>
         </div>
       </div>
-
-      {/* Bottom Section: My Briefs Preview */}
-      <section className="recent-briefs-section">
-        <div className="section-header">
-          <h2 className="text-headline-sm">Recent Briefs</h2>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/briefs')}>View My Briefs →</button>
-        </div>
-
-        <div className="briefs-preview-grid">
-          <div className="brief-preview-card card" onClick={() => navigate('/creators')}>
-            <div className="brief-card-header">
-              <span className="badge badge-primary">Active</span>
-              <span className="text-label-sm text-muted">Oct 14, 2026</span>
-            </div>
-            <h3 className="text-headline-sm brief-title">Q4 Protein Supplement Launch</h3>
-            <p className="text-body-sm text-muted">Targeting Gen Z Fitness enthusiasts across Instagram and YouTube Shorts.</p>
-            <div className="brief-card-footer">
-              <span className="brief-meta">$5,000 Budget</span>
-              <span className="brief-meta">42 Creators</span>
-            </div>
-          </div>
-
-          <div className="brief-preview-card card" onClick={() => navigate('/creators')}>
-            <div className="brief-card-header">
-              <span className="badge badge-success">Completed</span>
-              <span className="text-label-sm text-muted">Sep 28, 2026</span>
-            </div>
-            <h3 className="text-headline-sm brief-title">Tech Wearable Unboxing</h3>
-            <p className="text-body-sm text-muted">High-authenticity micro-creators in the consumer gadgets niche.</p>
-            <div className="brief-card-footer">
-              <span className="brief-meta">$12,000 Budget</span>
-              <span className="brief-meta">18 Creators</span>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

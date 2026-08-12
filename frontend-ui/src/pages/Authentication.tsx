@@ -48,18 +48,7 @@ export function Authentication({ onLogin }: AuthenticationProps) {
         const res = await authAPI.ssoLogin(tokenResponse.access_token, 'google');
         onLogin(res.profile);
       } catch (err: any) {
-        if (err.message?.includes('Network error') || err.message?.includes('Failed to fetch')) {
-          console.warn('Backend reachable check failed, proceeding in developer demo mode for Google SSO.');
-          const res = await authAPI.ssoLogin("dev_bypass", 'google').catch(() => null);
-          onLogin(res?.profile || {
-            id: 'demo-user-id',
-            email: 'google-demo@gmail.com',
-            full_name: 'Google User',
-            company_or_agency: 'MatchInfluence Enterprise',
-          });
-        } else {
-          setError(err.message || 'Google authentication failed.');
-        }
+        setError(err.message || 'Google authentication failed. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -109,18 +98,7 @@ export function Authentication({ onLogin }: AuthenticationProps) {
         onLogin(res.profile);
       }
     } catch (err: any) {
-      // Fallback for developer/demo mode if backend isn't responding or offline
-      if (err.message?.includes('Network error') || err.message?.includes('Failed to fetch')) {
-        console.warn('Backend reachable check failed, proceeding in developer demo mode.');
-        onLogin({
-          id: 'demo-user-id',
-          email: trimmedEmail,
-          full_name: fullName.trim() || (trimmedEmail.split('@')[0].toUpperCase()),
-          company_or_agency: companyName.trim() || 'MatchInfluence Enterprise',
-        });
-      } else {
-        setError(err.message || 'Authentication failed. Please check your credentials.');
-      }
+      setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -140,18 +118,11 @@ export function Authentication({ onLogin }: AuthenticationProps) {
     setLoading(true);
     try {
       const res = await authAPI.forgotPassword(trimmedEmail);
-      setRecoveryToken(res.recovery_token || 'REC-MI-9921-X5');
-      setSuccessMessage('Recovery instruction dispatched! (Dev Mode: verification token auto-filled in next step).');
+      if (res.recovery_token) setRecoveryToken(res.recovery_token);
+      setSuccessMessage('Recovery instructions sent! Check your inbox and enter the token below.');
       setTimeout(() => switchMode('reset'), 2000);
-    } catch {
-      // Fallback in dev/offline
-      setRecoveryToken('REC-MI-9921-X5');
-      setSuccessMessage('Recovery email sent! (Dev Mode: token REC-MI-9921-X5 supplied).');
-      setTimeout(() => {
-        setAuthMode('reset');
-        setError('');
-        setSuccessMessage('Security recovery token has been auto-populated for dev testing.');
-      }, 1800);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send recovery email. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -183,12 +154,7 @@ export function Authentication({ onLogin }: AuthenticationProps) {
       switchMode('login');
       setSuccessMessage('Password successfully updated! You can now sign in with your new credentials.');
     } catch (err: any) {
-      if (err.message?.includes('Network error') || err.message?.includes('Failed to fetch')) {
-        switchMode('login');
-        setSuccessMessage('Password successfully reset! You can now sign in.');
-      } else {
-        setError(err.message || 'Failed to reset password. Token may have expired.');
-      }
+      setError(err.message || 'Failed to reset password. Token may have expired.');
     } finally {
       setLoading(false);
     }

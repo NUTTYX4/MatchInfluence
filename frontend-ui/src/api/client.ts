@@ -112,7 +112,7 @@ export const campaignAPI = {
     request<Campaign>('/campaigns', { method: 'POST', body: data }),
 
   list: () =>
-    request<Array<{ id: string; niche: string; budget: number }>>('/campaigns'),
+    request<Campaign[]>('/campaigns'),
 
   analyze: (prompt: string) =>
     request<BriefAnalysis>('/campaigns/analyze', { method: 'POST', body: { prompt } }),
