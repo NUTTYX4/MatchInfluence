@@ -98,7 +98,7 @@ export function Authentication({ onLogin }: AuthenticationProps) {
         onLogin({
           id: 'demo-user-id',
           email: trimmedEmail,
-          full_name: fullName.trim() || (trimmedEmail === 'nithinvinuthan123@gmail.com' ? 'Nithin Vinuthan' : trimmedEmail.split('@')[0].toUpperCase()),
+          full_name: fullName.trim() || (trimmedEmail.split('@')[0].toUpperCase()),
           company_or_agency: companyName.trim() || 'MatchInfluence Enterprise',
         });
       } else {
@@ -220,7 +220,7 @@ export function Authentication({ onLogin }: AuthenticationProps) {
                     id="email-recovery"
                     type="email"
                     className="input-field"
-                    placeholder="nithinvinuthan123@gmail.com"
+                    placeholder="guest@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -365,7 +365,7 @@ export function Authentication({ onLogin }: AuthenticationProps) {
                     id="email"
                     type="email"
                     className="input-field"
-                    placeholder="nithinvinuthan123@gmail.com"
+                    placeholder="guest@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required

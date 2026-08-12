@@ -28,7 +28,7 @@ export function AppLayout({ children, onLogout, userProfile }: AppLayoutProps) {
     onLogout();
   };
 
-  const displayName = userProfile?.full_name || 'Nithin Vinuthan';
+  const displayName = userProfile?.full_name || 'Guest User';
   const initial = displayName.charAt(0).toUpperCase();
 
   return (

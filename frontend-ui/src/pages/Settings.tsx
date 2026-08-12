@@ -86,7 +86,7 @@ export function Settings({ userProfile, onUpdateProfile }: SettingsProps) {
   const handleExportData = () => {
     const archiveData = {
       workspace: "MatchInfluence Enterprise",
-      user: userProfile?.email || "nithinvinuthan123@gmail.com",
+      user: userProfile?.email || "guest@example.com",
       exportedAt: new Date().toISOString(),
       preferences: getPreferences(),
       campaignHistory: [
@@ -178,7 +178,7 @@ export function Settings({ userProfile, onUpdateProfile }: SettingsProps) {
                   id="email-read"
                   type="email"
                   className="input-field disabled-input"
-                  value={userProfile?.email || "nithinvinuthan123@gmail.com"}
+                  value={userProfile?.email || "guest@example.com"}
                   disabled
                 />
               </div>

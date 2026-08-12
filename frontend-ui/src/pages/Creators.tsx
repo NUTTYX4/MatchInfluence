@@ -8,72 +8,9 @@ interface CreatorsProps {
   campaignId: string | null;
 }
 
-const mockCreators: MatchResult[] = [
-  {
-    rank: 1,
-    username: '@fit_jessica',
-    platform: 'Instagram',
-    follower_count: 850000,
-    engagement_rate: 4.2,
-    composite_score: 98,
-    semantic_score: 96,
-    authenticity_score: 99,
-    cpe: 0.38,
-    explanation: 'Matches your campaign’s high-protein focus with 94% semantic overlap in recent organic content. Exceptionally high audience overlap with your target Gen-Z demographic.'
-  },
-  {
-    rank: 2,
-    username: '@alex_lifts',
-    platform: 'YouTube',
-    follower_count: 1200000,
-    engagement_rate: 5.1,
-    composite_score: 94,
-    semantic_score: 92,
-    authenticity_score: 95,
-    cpe: 0.42,
-    explanation: 'Consistent viewer retention on supplement review Shorts and long-form dietary routines. Strong comment sentiment and zero bot activity detected.'
-  },
-  {
-    rank: 3,
-    username: '@macro_master',
-    platform: 'TikTok',
-    follower_count: 620000,
-    engagement_rate: 6.8,
-    composite_score: 91,
-    semantic_score: 89,
-    authenticity_score: 93,
-    cpe: 0.29,
-    explanation: 'High virality index among gym beginners. Offers extremely competitive cost-per-engagement and frequent spontaneous product placements.'
-  },
-  {
-    rank: 4,
-    username: '@sarah_wellness',
-    platform: 'Instagram',
-    follower_count: 450000,
-    engagement_rate: 3.9,
-    composite_score: 88,
-    semantic_score: 85,
-    authenticity_score: 91,
-    cpe: 0.45,
-    explanation: 'Holistic lifestyle creator with an highly engaged, mature wellness community. Ideal for building brand trust and long-term ambassador retention.'
-  },
-  {
-    rank: 5,
-    username: '@powerbuild_pro',
-    platform: 'YouTube',
-    follower_count: 940000,
-    engagement_rate: 4.5,
-    composite_score: 86,
-    semantic_score: 88,
-    authenticity_score: 84,
-    cpe: 0.51,
-    explanation: 'Specialized strength athlete with authoritative domain knowledge in workout supplements. Highly targeted male audience aged 22-35.'
-  }
-];
-
 export function Creators({ campaignId }: CreatorsProps) {
   const navigate = useNavigate();
-  const [creators, setCreators] = useState<MatchResult[]>(mockCreators);
+  const [creators, setCreators] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<'fit' | 'cpe' | 'followers' | 'authenticity'>('fit');
   const [platformFilter, setPlatformFilter] = useState<'All' | 'Instagram' | 'YouTube' | 'TikTok'>('All');

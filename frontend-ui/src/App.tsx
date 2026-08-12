@@ -22,8 +22,8 @@ function App() {
       authAPI.getProfile().then(setUserProfile).catch(() => {
         setUserProfile({
           id: "default-user",
-          email: "nithinvinuthan123@gmail.com",
-          full_name: "Nithin Vinuthan",
+          email: "guest@example.com",
+          full_name: "Guest User",
           company_or_agency: "MatchInfluence Enterprise",
         });
       });
