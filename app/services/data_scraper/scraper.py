@@ -54,14 +54,13 @@ class IngestionScraperEngine:
             response.raise_for_status()
             data = response.json()
             
-            logger.debug("YouTube channel data fetched: %s", snippet.get("title", ""))
-            
             if not data.get("items"):
                 raise ValueError(f"No YouTube channel found for ID: {channel_id}")
                 
             item = data["items"][0]
             snippet = item["snippet"]
             stats = item["statistics"]
+            logger.debug("YouTube channel data fetched: %s", snippet.get("title", ""))
             
             return {
                 "username": snippet.get("customUrl", snippet["title"]),
